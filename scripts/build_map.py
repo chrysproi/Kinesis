@@ -2,7 +2,7 @@
 
     python scripts/build_map.py
     python scripts/build_map.py --only zones metro_line metro_stations
-    python scripts/build_map.py --output /tmp/preview.html
+    python scripts/build_map.py --output outputs/preview.html
 
 Buildings and trees dominate the file size, so `--only` is the fast way
 to iterate on a single theme.

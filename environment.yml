@@ -1,0 +1,36 @@
+# The conda route, which is the one to prefer: GDAL, GEOS and PROJ come
+# as prebuilt binaries from conda-forge rather than being compiled.
+#
+#   conda env create -f environment.yml
+#   conda activate interactive-map
+#
+# Versions live in pyproject.toml. Listed here by name only, so the two
+# files cannot disagree about a bound.
+name: interactive-map
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.12
+  - gdal
+  - geos
+  - proj
+  - geopandas
+  - shapely
+  - pyproj
+  - pyogrio
+  - pandas
+  - numpy
+  - scipy
+  - mapclassify
+  - networkx
+  - rasterio
+  - pillow
+  - folium
+  - branca
+  - jupyterlab
+  - ipykernel
+  - pip
+  - pip:
+      - -e .[dev]

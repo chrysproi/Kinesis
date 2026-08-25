@@ -4,9 +4,31 @@ The Python package. It prepares the source GeoPackages into web-ready
 layers and generates the frontend's layer definitions from a single
 registry.
 
-Installed editable (`pip install -e .`) so `import thessmap` works from a
-notebook, a script or a test alike. Run it through
-[`scripts/`](../../scripts/).
+Run it through [`scripts/`](../../scripts/).
+
+## Install
+
+Conda is the route to prefer: GDAL, GEOS and PROJ arrive as prebuilt
+binaries from conda-forge rather than being compiled.
+
+```bash
+conda env create -f environment.yml
+conda activate interactive-map
+```
+
+That installs the package editable and in place, which is what lets
+`import thessmap` work from any directory — notebooks, scripts and tests
+alike.
+
+With pip alone, in an activated environment:
+
+```bash
+python -m pip install -e ".[dev]"
+```
+
+Dependencies are declared once, in `pyproject.toml`. `environment.yml`
+names the same packages without versions, so the two cannot disagree
+about a bound.
 
 ## `registry.py` is the contract
 
@@ -30,9 +52,14 @@ Three other flags carry behaviour: `pinned` (always on, no switch),
 `EXCLUSIVE` groups (only one layer per group may be on, for layers that
 fill the same polygons).
 
-Nothing else hard-codes a zoom level, and `web/src/generated/layers.ts`
-is generated from this file — so adding a layer means a registry entry
-and a prepare rule, not a change in two languages.
+Zoom thresholds are owned here rather than duplicated across the two
+renderers, and `generated/layerRegistry.ts` is generated from this file
+— so adding a layer means a registry entry and a prepare rule, not a
+change in two languages.
+
+`tests/test_registry.py` checks the invariants this section claims:
+every detail names a real parent, ids are unique, ranges are ordered,
+pinned layers stay out of the menu.
 
 ## Modules
 
@@ -42,7 +69,7 @@ and a prepare rule, not a change in two languages.
 | `palette.py` | every colour, width and size decision |
 | `config.py` | paths and CRS constants, resolved from `__file__` |
 | `data.py` | `MapData` — lazy, cached reads of raw and processed layers |
-| `webexport.py` | GeoJSON + `layers.ts`: MapLibre paint, menu, legend, sprites |
+| `webexport.py` | GeoJSON + `layerRegistry.ts`: paint, menu, legend, sprites |
 | `rasterexport.py` | GeoTIFF → pre-coloured PNG, since MapLibre reads no TIFF |
 | `classify.py` | Jenks breaks, matching what QGIS produces |
 | `indicators.py` | the mapped socio-demographic indicators |
@@ -51,17 +78,24 @@ and a prepare rule, not a change in two languages.
 
 ### `prepare/`
 
-Clip · reproject · simplify · classify. `pipeline.py` is the common path;
-`sources.py` lists the simple layers that need nothing but it. Anything
-needing real work gets a module: `buildings.py`, `water.py`,
-`walkways.py`, `amenities.py`, `destinations.py`, `openspaces.py`,
-`hubs.py`, `special.py`.
+Clip · reproject · simplify · classify. `pipeline.py` is the common path
+and `sources.py` lists the layers that need nothing more than it; each
+source needing real work gets a module of its own beside them.
+
+Preparation overwrites `data/processed/`, and **does not reproduce
+byte-identical files across library versions**: GEOS changes ring
+rotation and coordinate precision between releases, so `clip` and
+`simplify` output drifts. Feature counts and shapes are unaffected. Back
+up `data/processed/` before regenerating, and pin the geometry stack if
+you need reproducibility.
+
+`data/` is intentionally read-only; `data/processed/` is writable so the
+preparation step can run.
 
 ### `render/`
 
-The Folium renderer, kept for the notebook. `builder.py` assembles,
-`layers/` holds one module per theme, `zoom.py` turns registry thresholds
-into Leaflet zoom rules. The MapLibre frontend does not use any of it.
+The Folium renderer, kept for the notebook, with one module per theme
+under `layers/`. The MapLibre frontend does not use any of it.
 
 ## Coordinate systems
 

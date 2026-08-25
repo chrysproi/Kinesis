@@ -1,11 +1,13 @@
 # Scripts
 
-Command-line entry points. Every one takes `--help`, and all paths
-resolve from the package rather than the working directory, so they can
-be run from anywhere.
+Command-line entry points, thin by design: they parse flags and call
+into [`thessmap`](../src/thessmap/README.md). Every one takes `--help`.
 
-Run them with the environment from the [root README](../README.md#run-it)
-active and the source GeoPackages in `data/`.
+Run them from the repository root, with the
+[package environment](../src/thessmap/README.md#install) active and the
+source GeoPackages in `data/`. Once launched, their input and output
+paths are resolved by the package rather than from the working
+directory.
 
 ## The pipeline
 
@@ -18,13 +20,13 @@ need the current files.
 ```bash
 python scripts/prepare_layers.py --dry-run          # list what would run
 python scripts/prepare_layers.py --only bus_stops trees
-python scripts/prepare_layers.py --out /tmp/processed
+python scripts/prepare_layers.py --out build/processed
 ```
 
 ### `export_web_data.py` — `data/processed/` → `web/`
 
 Writes GeoJSON into `web/public/data/` and TypeScript into
-`web/src/generated/layers.ts`.
+`web/src/generated/layerRegistry.ts`.
 
 ```bash
 python scripts/export_web_data.py
@@ -70,7 +72,28 @@ fast way to look at one theme.
 ```bash
 python scripts/build_map.py
 python scripts/build_map.py --only zones metro_line metro_stations
-python scripts/build_map.py --output /tmp/preview.html
+python scripts/build_map.py --output outputs/preview.html
 ```
 
 Writes to `outputs/`.
+
+## Checks
+
+```bash
+pytest                      # registry, export and frontend contracts
+```
+
+Contract tests rather than unit tests: every detail names a real parent,
+the committed `layerRegistry.ts` matches what the registry would emit
+now, every source has a file behind it, every icon reference resolves to
+a sprite, and the frontend's dependencies never run upward. They fail
+when Python and the frontend drift apart, which is the failure this
+architecture is exposed to.
+
+On the frontend:
+
+```bash
+cd web
+npm run lint
+npm run build               # tsc -b && vite build
+```

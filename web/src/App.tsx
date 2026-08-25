@@ -1,8 +1,8 @@
 import { useCallback, useRef } from "react";
 
-import Legend from "./components/Legend";
-import Sidebar from "./components/Sidebar";
-import ZoomBadge from "./components/ZoomBadge";
+import Legend from "./sidebar/Legend";
+import Sidebar from "./sidebar/Sidebar";
+import ZoomBadge from "./sidebar/ZoomBadge";
 import MapView from "./map/MapView";
 
 export default function App() {

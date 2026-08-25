@@ -1,12 +1,16 @@
 import { useState } from "react";
 
-import { MENU, THEMES, type MenuLayer, type Theme } from "../generated/layers";
-import { useMapStore } from "../store";
+import { menuByTheme, themesInOrder } from "../layers/grouping";
+import { type MenuLayer } from "../generated/layerRegistry";
+import { useMapStore } from "../layers/store";
 import LayerSwatch from "./LayerSwatch";
 
-const ALL: MenuLayer[] = (Object.keys(THEMES) as Theme[]).flatMap((theme) =>
-  (MENU[theme] ?? []).flatMap((entry) => entry.layers),
-);
+const all = (): MenuLayer[] => {
+  const menu = menuByTheme();
+  return themesInOrder().flatMap((theme) =>
+    (menu[theme] ?? []).flatMap((entry) => entry.layers),
+  );
+};
 
 const COLLAPSED_CHIPS = 4;
 
@@ -15,7 +19,7 @@ export default function ActiveLayers() {
   const setMany = useMapStore((state) => state.setMany);
   const [expanded, setExpanded] = useState(false);
 
-  const chips = ALL.filter((layer) => layer.ids.every((id) => visible[id]));
+  const chips = all().filter((layer) => layer.ids.every((id) => visible[id]));
 
   const hidden = expanded ? 0 : Math.max(0, chips.length - COLLAPSED_CHIPS);
   const shown = expanded ? chips : chips.slice(0, COLLAPSED_CHIPS);

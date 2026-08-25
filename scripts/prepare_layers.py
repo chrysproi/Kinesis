@@ -2,7 +2,7 @@
 
     python scripts/prepare_layers.py --dry-run
     python scripts/prepare_layers.py --only bus_stops trees
-    python scripts/prepare_layers.py --out /tmp/processed
+    python scripts/prepare_layers.py --out build/processed
 
 This overwrites data/processed/, which is what the map reads. Because
 GEOS output varies between library versions, re-running will not always

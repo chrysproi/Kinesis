@@ -1,8 +1,4 @@
-import type { Map as MapLibreMap } from "maplibre-gl";
-
-import { ICON_SPRITES, RASTER_ICONS, type IconSprite } from "../generated/layers";
-
-/** lucide icons, rasterised for MapLibre's addImage. */
+/** The icon artwork: lucide SVGs, and the sprites lucide has no glyph for. */
 
 import amphora from "lucide-static/icons/amphora.svg?raw";
 import waypoints from "lucide-static/icons/waypoints.svg?raw";
@@ -41,7 +37,7 @@ import squareParking from "lucide-static/icons/square-parking.svg?raw";
 import target from "lucide-static/icons/target.svg?raw";
 import wrench from "lucide-static/icons/wrench.svg?raw";
 
-const SVG: Record<string, string> = {
+export const SVG: Record<string, string> = {
   amphora,
   waypoints,
   "toy-brick": toyBrick,
@@ -87,7 +83,7 @@ const wrap = (body: string) =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">${body}</svg>`;
 
 /** Sprites lucide has no glyph for. Undefined for anything it does. */
-const BUILT: Record<string, ((color: string) => string) | undefined> = {
+export const BUILT: Record<string, ((color: string) => string) | undefined> = {
   "bike-parking": (c) => `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
          stroke="${c}" stroke-width="2.3" stroke-linecap="round"
@@ -134,107 +130,3 @@ const BUILT: Record<string, ((color: string) => string) | undefined> = {
 /** The same sprites as inline SVG, for the legend. */
 export const builtSvg = (name: string | null | undefined, color: string) =>
   (name && BUILT[name]?.(color)) || null;
-
-const RASTER_SCALE = 2;
-
-function colorise(svg: string, color: string, size: number) {
-  const px = size * RASTER_SCALE;
-
-  return svg
-    .replace(/currentColor/g, color)
-    .replace(/(<svg[^>]*?)\swidth="\d+"/, `$1 width="${px}"`)
-    .replace(/(<svg[^>]*?)\sheight="\d+"/, `$1 height="${px}"`);
-}
-
-function rasterise(sprite: IconSprite): Promise<ImageData> {
-  const built = BUILT[sprite.lucide];
-  const svg = built ? built(sprite.color) : SVG[sprite.lucide];
-
-  if (!svg) {
-    return Promise.reject(
-      new Error(
-        `No SVG imported for lucide icon "${sprite.lucide}" (sprite ` +
-          `"${sprite.id}"). Add it to SVG in src/map/icons.ts.`,
-      ),
-    );
-  }
-
-  const px = sprite.size * RASTER_SCALE;
-  const markup = built
-    ? svg.replace("<svg", `<svg width="${px}" height="${px}"`)
-    : colorise(svg, sprite.color, sprite.size);
-  const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(markup)}`;
-
-  return new Promise((resolve, reject) => {
-    const image = new Image(px, px);
-
-    image.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = px;
-      canvas.height = px;
-
-      const context = canvas.getContext("2d");
-      if (!context) {
-        reject(new Error("No 2d context available for icon rasterising"));
-        return;
-      }
-
-      context.drawImage(image, 0, 0, px, px);
-      resolve(context.getImageData(0, 0, px, px));
-    };
-
-    image.onerror = () =>
-      reject(new Error(`Could not decode SVG for sprite "${sprite.id}"`));
-
-    image.src = url;
-  });
-}
-
-/** Supplied artwork, which keeps its own colours. */
-function loadArtwork(file: string): Promise<ImageData> {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = image.naturalWidth;
-      canvas.height = image.naturalHeight;
-      const context = canvas.getContext("2d");
-      if (!context) return reject(new Error(`No 2D context for ${file}`));
-      context.drawImage(image, 0, 0);
-      resolve(context.getImageData(0, 0, canvas.width, canvas.height));
-    };
-    image.onerror = () => reject(new Error(`Could not load artwork ${file}`));
-    image.src = `${import.meta.env.BASE_URL}${file}`;
-  });
-}
-
-export async function loadIcons(map: MapLibreMap) {
-  const loaded = await Promise.all(
-    ICON_SPRITES.map(async (sprite) => {
-      try {
-        return [sprite, await rasterise(sprite)] as const;
-      } catch (error) {
-        console.error(error);
-        return null;
-      }
-    }),
-  );
-
-  for (const entry of loaded) {
-    if (!entry) continue;
-    const [sprite, bitmap] = entry;
-    if (map.hasImage(sprite.id)) continue;
-    map.addImage(sprite.id, bitmap, { pixelRatio: RASTER_SCALE });
-  }
-
-  await Promise.all(
-    Object.entries(RASTER_ICONS).map(async ([id, file]) => {
-      if (map.hasImage(id)) return;
-      try {
-        map.addImage(id, await loadArtwork(file), { pixelRatio: 2 });
-      } catch (error) {
-        console.error(error);
-      }
-    }),
-  );
-}

@@ -1,7 +1,7 @@
 import { Bike } from "lucide-react";
 
-import type { Swatch } from "../generated/layers";
-import { lucideFor } from "./lucide";
+import type { Swatch } from "../generated/layerRegistry";
+import { lucideFor } from "../ui/lucide";
 
 interface LayerSwatchProps {
   swatch: Swatch;

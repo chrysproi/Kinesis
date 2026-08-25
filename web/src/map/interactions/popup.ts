@@ -1,6 +1,6 @@
 /** Feature cards. Styles live in index.css under `.tm-*`. */
 
-import { VALUE_LABELS } from "../generated/layers";
+import { VALUE_LABELS } from "../../generated/layerRegistry";
 
 /** Fields worth showing, in the order they should appear. */
 const PREFERRED = [

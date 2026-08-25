@@ -1,6 +1,6 @@
 import { Marker, type GeoJSONSource, type Map as MapLibreMap } from "maplibre-gl";
 
-import { CLUSTERED_SOURCES } from "../generated/layers";
+import { CLUSTERED_SOURCES } from "../../generated/layerRegistry";
 
 /** Cluster badges as DOM markers: a raster basemap serves no glyphs. */
 export function attachClusters(

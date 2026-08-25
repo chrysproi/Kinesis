@@ -1,4 +1,4 @@
-import { useMapStore } from "../store";
+import { useMapStore } from "../layers/store";
 
 export default function ZoomBadge() {
   const zoom = useMapStore((state) => state.zoom);

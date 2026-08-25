@@ -1,13 +1,16 @@
-import { MENU, THEMES, type MenuEntry, type MenuLayer, type Theme } from "../generated/layers";
-import { useMapStore } from "../store";
+import { menuByTheme, themesInOrder } from "../layers/grouping";
+import { THEMES, type MenuEntry, type MenuLayer } from "../generated/layerRegistry";
+import { useMapStore } from "../layers/store";
 import ActiveLayers from "./ActiveLayers";
-import Toggle from "./Toggle";
+import Toggle from "../ui/Toggle";
 
 interface SidebarProps {
   onFlyToZoom: (zoom: number) => void;
 }
 
 export default function Sidebar({ onFlyToZoom }: SidebarProps) {
+  const menu = menuByTheme();
+
   return (
     <nav
       aria-label="Map layers"
@@ -42,8 +45,8 @@ export default function Sidebar({ onFlyToZoom }: SidebarProps) {
       </div>
 
       <div className="flex-1 space-y-5 overflow-y-auto px-6 pb-4 pt-1">
-        {(Object.keys(THEMES) as Theme[]).map((theme) => {
-          const entries = MENU[theme];
+        {themesInOrder().map((theme) => {
+          const entries = menu[theme];
           if (!entries?.length) return null;
 
           return (

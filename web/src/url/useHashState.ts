@@ -5,8 +5,8 @@ import {
   MAP_CONFIG,
   PINNED_LAYERS,
   TOGGLE_LAYERS,
-} from "../generated/layers";
-import { activeIds, useMapStore } from "../store";
+} from "../generated/layerRegistry";
+import { activeIds, useMapStore } from "../layers/store";
 
 export interface View {
   zoom: number;

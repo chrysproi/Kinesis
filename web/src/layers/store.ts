@@ -1,14 +1,17 @@
 import { create } from "zustand";
 
+import { AUTO_HIDE } from "../generated/layerRegistry";
 import {
-  AUTO_HIDE,
-  EXCLUSIVE_GROUPS,
-  PINNED_LAYERS,
-  TOGGLE_LAYERS,
-} from "./generated/layers";
+  autoHiding,
+  defaultVisibility,
+  occupiedBy,
+  visibilityFor,
+  withExclusions,
+  type Visible,
+} from "./visibility";
 
 interface MapState {
-  visible: Record<string, boolean>;
+  visible: Visible;
   zoom: number;
   /** Auto-hiding layers closed by zoom, so zooming out can restore them. */
   autoClosed: string[];
@@ -16,28 +19,11 @@ interface MapState {
   claimed: string[];
 
   toggle: (id: string) => void;
-  setVisible: (visible: Record<string, boolean>) => void;
+  setVisible: (visible: Visible) => void;
   setMany: (ids: string[], on: boolean) => void;
   setZoom: (zoom: number) => void;
   showOnly: (ids: string[], zoom?: number) => void;
 }
-
-const defaults = Object.fromEntries(
-  TOGGLE_LAYERS.map((layer) => [layer.id, layer.show]),
-);
-
-/** Switching a layer on switches off anything it cannot share the map with. */
-const withExclusions = (
-  visible: Record<string, boolean>,
-  id: string,
-): Record<string, boolean> => {
-  const group = EXCLUSIVE_GROUPS.find((ids) => ids.includes(id));
-  if (!group) return visible;
-
-  const cleared = { ...visible };
-  for (const other of group) if (other !== id) cleared[other] = false;
-  return cleared;
-};
 
 /** Hand-switching an auto-hiding layer takes it out of the zoom rule. */
 const claim = (claimed: string[], ids: string[]) => {
@@ -45,13 +31,8 @@ const claim = (claimed: string[], ids: string[]) => {
   return mine.length ? [...claimed, ...mine] : claimed;
 };
 
-const occupiedBy = (visible: Record<string, boolean>, id: string) => {
-  const group = EXCLUSIVE_GROUPS.find((ids) => ids.includes(id));
-  return group ? group.some((other) => other !== id && visible[other]) : false;
-};
-
 export const useMapStore = create<MapState>((set) => ({
-  visible: defaults,
+  visible: defaultVisibility(),
   zoom: 10,
   autoClosed: [],
   claimed: [],
@@ -84,7 +65,7 @@ export const useMapStore = create<MapState>((set) => ({
       let visible = state.visible;
       let autoClosed = state.autoClosed;
 
-      for (const [id, threshold] of Object.entries(AUTO_HIDE)) {
+      for (const [id, threshold] of autoHiding()) {
         if (state.claimed.includes(id)) continue;
 
         const past = zoom > threshold;
@@ -108,12 +89,7 @@ export const useMapStore = create<MapState>((set) => ({
 
   showOnly: (ids, zoom) =>
     set((state) => ({
-      visible: Object.fromEntries(
-        TOGGLE_LAYERS.map((layer) => [
-          layer.id,
-          PINNED_LAYERS.includes(layer.id) || ids.includes(layer.id),
-        ]),
-      ),
+      visible: visibilityFor(ids),
       claimed: claim(
         state.claimed,
         ids.filter((id) => id in AUTO_HIDE && (zoom ?? 0) > AUTO_HIDE[id]),
@@ -122,7 +98,4 @@ export const useMapStore = create<MapState>((set) => ({
     })),
 }));
 
-export const activeIds = (visible: Record<string, boolean>) =>
-  Object.entries(visible)
-    .filter(([, on]) => on)
-    .map(([id]) => id);
+export { activeIds } from "./visibility";

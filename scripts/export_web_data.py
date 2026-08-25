@@ -3,7 +3,7 @@
     python scripts/export_web_data.py
 
 Writes GeoJSON into web/public/data/ and TypeScript into
-web/src/generated/layers.ts. Both come from registry.py and palette.py,
+web/src/generated/layerRegistry.ts. Both come from registry.py and palette.py,
 so a layer is never declared twice.
 """
 
@@ -25,10 +25,10 @@ def main(argv=None):
     parser.add_argument("--bbox", nargs=4, type=float, metavar=("W", "S", "E", "N"),
                         help="cut to a window, for a lighter dev dataset")
     parser.add_argument("--types-only", action="store_true",
-                        help="regenerate layers.ts without re-exporting GeoJSON")
+                        help="regenerate layerRegistry.ts without re-exporting GeoJSON")
     args = parser.parse_args(argv)
 
-    types_path = args.web / "src" / "generated" / "layers.ts"
+    types_path = args.web / "src" / "generated" / "layerRegistry.ts"
 
     print("Layer definitions")
     webexport.write_layers_ts(types_path)
