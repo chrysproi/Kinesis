@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """Bus-Metro integration and Metro walking catchments.
 
     python scripts/analyse_accessibility.py

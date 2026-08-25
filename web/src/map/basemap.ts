@@ -6,10 +6,6 @@ const ATTRIBUTION =
 
 const TILES = "https://a.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png";
 
-/**
- * A minimal, label-free raster basemap. Swapping this for a vector
- * basemap later changes nothing about how the thematic layers are added.
- */
 export function basemapStyle(): StyleSpecification {
   return {
     version: 8,

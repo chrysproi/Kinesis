@@ -1,12 +1,4 @@
-"""Education and culture preparation.
-
-These two are the only layers that genuinely need custom handling: both
-arrive as several source files mixing polygons, lines and points, and
-both need one symbol point per feature plus thinning so dense clusters
-do not turn into a blob of overlapping icons.
-
-Everything else in the project goes through `prepare_web_layer`.
-"""
+"""Education and culture preparation."""
 
 import geopandas as gpd
 
@@ -14,12 +6,8 @@ from .. import config
 from .classify import classify_culture_subtype, classify_education
 from .geometry import keep_columns, merge, thin_close_points, to_symbol_points, valid_geometries
 
-# Distance below which symbols are considered duplicates. Metres, applied
-# before reprojecting to 4326.
 MIN_SYMBOL_DISTANCE = 35
-
 EDUCATION_SOURCES = [f"education_{n}" for n in range(1, 10)]
-
 CULTURE_SOURCES = {
     "culture_polygons": "Culture",
     "culture_nodes": "Culture_nodes",
@@ -92,10 +80,7 @@ def _finalise(layers, boundary, output_path, layer_name, thin=False,
 
 
 def prepare_education(boundary, raw=None, processed=None, verbose=True):
-    """
-    Nine source files, each one education type, merged into a polygon
-    layer and a thinned symbol layer.
-    """
+    """Nine source files, each one education type, merged into a polygon layer and a thinned symbol layer."""
 
     raw = raw or config.RAW
     processed = processed or config.PROCESSED
@@ -107,9 +92,6 @@ def prepare_education(boundary, raw=None, processed=None, verbose=True):
         gdf = _load_source(raw / f"{source}.gpkg", boundary)
 
         gdf["education_source"] = source
-        # From the OSM tags, not the filename: the nine files are five
-        # categories split arbitrarily, and the filename leaked into the
-        # popup as "Type: education_8".
         gdf["education_type"] = gdf.apply(classify_education, axis=1)
 
         polygons = gdf[gdf.geom_type.isin(POLYGON_TYPES)].copy()
@@ -142,14 +124,7 @@ def prepare_education(boundary, raw=None, processed=None, verbose=True):
 
 
 def prepare_culture(boundary, raw=None, processed=None, verbose=True):
-    """
-    Three source files split into polygons, lines and symbols.
-
-    Symbols come from two places — a representative point inside each
-    polygon, and standalone nodes. Polygon-derived symbols are protected
-    during thinning so a mapped monument never loses its icon to a
-    nearby node.
-    """
+    """Three source files split into polygons, lines and symbols."""
 
     raw = raw or config.RAW
     processed = processed or config.PROCESSED
@@ -171,7 +146,6 @@ def prepare_culture(boundary, raw=None, processed=None, verbose=True):
             polygons = keep_columns(polygons, CULTURE_COLUMNS, CULTURE_OPTIONAL)
             polygon_layers.append(polygons)
 
-            # One symbol inside every polygon
             polygon_symbols = polygons.copy()
             polygon_symbols["geometry"] = polygon_symbols.geometry.representative_point()
             polygon_symbols["symbol_origin"] = "polygon"

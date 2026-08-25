@@ -1,9 +1,4 @@
-"""Metro line and stations.
-
-Metro stations sit at the top of the transport hierarchy, so they take
-the maximum bus-stop service-intensity radius rather than computing one.
-The line itself is drawn twice, in two styles, swapped at zoom 14.
-"""
+"""Metro line and stations."""
 
 import folium
 

@@ -1,10 +1,4 @@
-"""Generating the web app's data and layer definitions from Python.
-
-`registry.py` and `palette.py` stay the single source of truth: this
-module turns them into GeoJSON files, MapLibre layer definitions and a
-TypeScript module. Nothing about a layer — its label, its zoom range,
-its colour — is written twice.
-"""
+"""Generating the web app's data and layer definitions from Python."""
 
 import json
 import re
@@ -12,9 +6,6 @@ import re
 from . import config, palette, registry
 from .prepare.sources import SIMPLE_BY_NAME
 
-# Web CRS layers small enough to ship as GeoJSON during development.
-# Buildings and water move to vector tiles later; they are excluded here
-# because plain GeoJSON would be tens of megabytes.
 GEOJSON_SOURCES = {
     "zones": "units_4326",
     "municipalities": "municipalities",
@@ -54,67 +45,44 @@ GEOJSON_SOURCES = {
     "hub_network": "hub_network",
 }
 
-# Sources the frontend adds with clustering on. Mirrors Folium's
-# MarkerCluster: a 30 px radius, and individual points from z18.
 CLUSTERED_SOURCES = {
     "bike_points": {"radius": 30, "maxZoom": 17},
 }
 
-# Rasters shipped as coloured PNGs behind a MapLibre `image` source.
-# {source name: (input GeoTIFF stem, output PNG name)}
 RASTER_SOURCES = {
     "pop_density_100m": ("pop_density_100m", "pop_density_100m.png"),
 }
 
-# Icons that are supplied artwork rather than a colourised lucide glyph.
-# {sprite id: file under web/public}
 RASTER_ICONS = {
     palette.HUB_ICON: palette.HUB_ICON_FILE,
 }
 
-# 6 decimal places is ~0.1 m, far finer than anything visible
 COORDINATE_PRECISION = 6
-
-# Sources where even that is more than the geometry deserves. Buildings
-# are simplified at 0.5 m and there are 192,565 of them, so the sixth
-# decimal costs 2.9 MB of exported GeoJSON to describe a precision the
-# footprints do not have.
 PRECISION_OVERRIDES = {
-    "buildings_height": 5,   # ~1 m
+    "buildings_height": 5,
 }
 
-# Sources fetched only when their layer is first switched on, rather than
-# at startup. Buildings are 64 MB and trees 8.7 MB, both off by default,
-# and downloading them eagerly cost 28 seconds before the map could be
-# used — for data most visitors never look at.
-#
-# Everything else stays eager: the whole rest of the payload is about
-# 1 MB gzipped, and lazy loading it would trade a fast first paint for a
-# stutter on every toggle.
 LAZY_SOURCES = ["buildings_height", "trees"]
-
-# Sources prepared with geometry only. Clicking one can never show
-# anything, so layers drawn from them get no popup and no pointer cursor
-# rather than an empty card.
 GEOMETRY_ONLY = frozenset(
     name for name, source in SIMPLE_BY_NAME.items() if source.columns is None
 )
 
-# Sources that carry attributes but are still not worth clicking. The
-# open-space fills are a backdrop: they cover most of the map, so a click
-# meant for a stop or a symbol would land on a park instead.
 NON_INTERACTIVE = frozenset({"green_spaces", "squares"})
 
 
 def export_geojson(data, destination, verbose=True):
-    """Write each web source to destination as GeoJSON."""
+    """Write each web source to destination as GeoJSON, named .json."""
 
     destination.mkdir(parents=True, exist_ok=True)
     written = {}
 
     for name, attribute in GEOJSON_SOURCES.items():
         gdf = getattr(data, attribute)
-        path = destination / f"{name}.geojson"
+        # .json, not .geojson: static hosts pick their gzip by content
+        # type, and application/json is on every host's list where
+        # application/geo+json is not. It is a 10x difference on the
+        # largest file.
+        path = destination / f"{name}.json"
 
         gdf.to_file(
             path, driver="GeoJSON",
@@ -130,11 +98,6 @@ def export_geojson(data, destination, verbose=True):
                   f"{written[name] / 1e6:>6.2f} MB")
 
     return written
-
-
-# --------------------------------------------------
-# MapLibre paint, derived from palette.py
-# --------------------------------------------------
 
 
 def _zone_match(key):
@@ -156,12 +119,7 @@ def _ramp(pair, registry_id, hi_zoom=None):
 
 
 def _hint(layer_id, source, registry_id, color):
-    """
-    A small muted dot marking that a dataset is there, before its icon
-    becomes readable. Presence first, detail later: without this a layer
-    is simply absent until its detail zoom, which reads as an empty map
-    that suddenly fills up.
-    """
+    """A small muted dot marking that a dataset is there, before its icon becomes readable."""
     return _layer(layer_id, source, "circle", {
         "circle-color": color,
         "circle-radius": _grow(
@@ -172,13 +130,7 @@ def _hint(layer_id, source, registry_id, color):
 
 
 def _tree_heatmap():
-    """
-    Canopy density before individual trees are legible.
-
-    42,000 points cannot be drawn as readable symbols until z18, but
-    vegetation density is exactly the sort of information that should
-    reach the reader early, so the layer arrives as a heatmap first.
-    """
+    """Canopy density before individual trees are legible."""
     ramp = ["interpolate", ["linear"], ["heatmap-density"]]
     for stop, color in palette.TREE_HEAT_RAMP:
         ramp += [stop, color]
@@ -189,11 +141,9 @@ def _tree_heatmap():
         "heatmap-intensity": [
             "interpolate", ["linear"], ["zoom"], 13, 0.5, 16, 1.1,
         ],
-        # Grows with zoom so the blur tracks real canopy spread
         "heatmap-radius": [
             "interpolate", ["linear"], ["zoom"], 13, 6, 16, 20,
         ],
-        # Fades out as the stippled points take over
         "heatmap-opacity": [
             "interpolate", ["linear"], ["zoom"],
             13, palette.TREE_HEAT_OPACITY[0],
@@ -203,28 +153,22 @@ def _tree_heatmap():
     }
 
 
+TREE_RADIUS_ANCHOR_ZOOM = 18
+
+
 def _tree_texture_radius():
-    """
-    Stipple that grows into the full symbols: barely-there points at 16,
-    the palette's height-class radii by 18.
-    """
+    """Stipple that grows into the full symbols."""
     return [
         "interpolate", ["linear"], ["zoom"],
         16, 2.0,
         17, 3.4,
-        18, _tree_match(1),
+        TREE_RADIUS_ANCHOR_ZOOM, _tree_match(1),
         config.MAX_ZOOM, _tree_match(1, SYMBOL_MAX_SCALE),
     ]
 
 
 def _dash(pattern_px, width):
-    """
-    Convert a pixel dash pattern to MapLibre units.
-
-    Leaflet's dashArray is in pixels; MapLibre's line-dasharray is in
-    multiples of line-width. Passing Leaflet's numbers straight through
-    makes a 3 px line draw 12 px dashes.
-    """
+    """Convert a pixel dash pattern to MapLibre units."""
     return [round(value / width, 3) for value in pattern_px]
 
 
@@ -232,14 +176,7 @@ _BREAK_CACHE = {}
 
 
 def indicator_breaks(column):
-    """
-    Jenks class bounds for one indicator column, from the real values.
-
-    Computed here rather than hardcoded so the fill expression, the
-    legend and the raster classification can never disagree, and so
-    re-running on updated census figures reclassifies instead of
-    silently mislabelling.
-    """
+    """Jenks class bounds for one indicator column, from the real values."""
 
     if column not in _BREAK_CACHE:
         from . import classify
@@ -259,12 +196,7 @@ def density_breaks():
 
 
 def _indicator_step(column):
-    """
-    A MapLibre step expression over one indicator column.
-
-    `step` needs the interior breaks only: five classes, four stops. The
-    last bound from the classifier is the data maximum, so it is dropped.
-    """
+    """A MapLibre step expression over one indicator column."""
 
     expression = ["step", ["get", column], palette.INDICATOR_RAMP[0]]
 
@@ -315,29 +247,6 @@ def _tree_match(index, scale=1):
     return expression
 
 
-# Trees are physical objects, so their symbols hold a constant *ground*
-# size rather than a constant pixel size. Metres per pixel halves with
-# every zoom level, so the radius doubles to compensate.
-#
-# At zoom 18 and latitude 40.6, one pixel is ~0.45 m, which puts the
-# palette's radii at ~1.0 m for saplings and ~2.3 m for the tallest
-# class — sensible crown radii. Anchoring here keeps those true.
-TREE_RADIUS_ANCHOR_ZOOM = 18
-
-
-def _tree_radius():
-    """Radius interpolated by zoom, preserving ground size."""
-
-    span = config.MAX_ZOOM - TREE_RADIUS_ANCHOR_ZOOM
-    scale = 2 ** span
-
-    return [
-        "interpolate", ["exponential", 2], ["zoom"],
-        TREE_RADIUS_ANCHOR_ZOOM, _tree_match(1),
-        config.MAX_ZOOM, _tree_match(1, scale),
-    ]
-
-
 def _bus_stop_radius(scale=1):
     """Service intensity as a step expression over line_count."""
     r = lambda value: round(value * scale, 2)
@@ -369,12 +278,8 @@ def _layer(layer_id, source, kind, paint, registry_id=None, source_layer=None):
             definition["maxzoom"] = spec.max_zoom
 
     definition["metadata"] = {
-        # Which sidebar toggle owns this layer
         "thessmap:parent": (spec.parent or spec.id) if spec else layer_id,
-        # The registry entry it was built from
         "thessmap:spec": spec.id if spec else layer_id,
-        # Whether clicking a feature can show anything. A raster has no
-        # features to query, so it never gets a popup or a pointer.
         "thessmap:interactive": (
             kind != "raster"
             and source not in GEOMETRY_ONLY
@@ -385,18 +290,7 @@ def _layer(layer_id, source, kind, paint, registry_id=None, source_layer=None):
     return definition
 
 
-# --------------------------------------------------
-# Icon sprites
-# --------------------------------------------------
-# Each entry becomes a raster registered with map.addImage(). Emitted to
-# TypeScript so the frontend never hardcodes an icon name or colour.
-
-ICON_RASTER_SIZE = 24  # lucide's native viewBox
-
-# A symbol debuts a little under its nominal size and grows to a little
-# over it by the deepest zoom. Fixed-pixel symbols look oversized the
-# moment they appear and undersized once the map has grown around them,
-# which is what made plates and halos read as inconsistent.
+ICON_RASTER_SIZE = 24
 SYMBOL_DEBUT_SCALE = 0.78
 SYMBOL_MAX_SCALE = 1.22
 
@@ -409,20 +303,12 @@ def _debut_zoom(registry_id, fallback=None):
 
 
 def _grow(build, registry_id, hi_zoom=None):
-    """
-    Interpolate a size between a layer's debut zoom and the deepest zoom.
-
-    `build` takes a scale factor and returns a number or a data-driven
-    expression, so this works for plain radii and for the bus stop step
-    expression alike.
-    """
+    """Interpolate a size between a layer's debut zoom and the deepest zoom."""
 
     spec = registry.SPEC.get(registry_id)
 
     lo = _debut_zoom(registry_id)
 
-    # Interpolate only across the zooms the layer is actually alive for,
-    # otherwise a layer that stops at 16 is sized as if it reached 19.
     if hi_zoom is not None:
         hi = hi_zoom
     elif spec is not None and spec.max_zoom is not None:
@@ -430,7 +316,7 @@ def _grow(build, registry_id, hi_zoom=None):
     else:
         hi = config.MAX_ZOOM
 
-    if hi <= lo:                      # nothing to interpolate across
+    if hi <= lo:
         return build(1)
 
     return [
@@ -466,16 +352,7 @@ class _Sprites:
 def _plated_symbol(layer_id, source, icon, registry_id, color,
                    plate_radius=9, icon_size=0.55, pane_color=None,
                    plate=True):
-    """
-    An icon, optionally on a white disc.
-
-    Two layers rather than one: MapLibre has no notion of a symbol
-    backdrop, and an unplated stroke icon disappears over dense basemap
-    detail — the same reason the Folium symbols sat on white circles.
-
-    `plate=False` for symbols that carry their own enclosure, or that read
-    better bare — the parking P and the metro M both do.
-    """
+    """An icon, optionally on a white disc."""
 
     plate_layer = _layer(
         f"{layer_id}-plate", source, "circle",
@@ -498,7 +375,6 @@ def _plated_symbol(layer_id, source, icon, registry_id, color,
             lambda scale: round(icon_size * palette.ICON_SCALE * scale, 3),
             registry_id,
         ),
-        # Symbols are the point of the layer, so never drop one for overlap
         "icon-allow-overlap": True,
         "icon-ignore-placement": True,
     }
@@ -555,8 +431,6 @@ def _indicator_layers():
                 "fill-opacity": _fade(palette.INDICATOR_FILL_OPACITY),
             }, registry_id=indicator.layer_id))
 
-        # White rather than a ramp colour: a coloured edge on a
-        # sequential fill reads as a sixth class.
         layers.append(_layer(
             f"{indicator.layer_id}-outline", "municipalities", "line", {
                 "line-color": palette.POP_DENSITY_OUTLINE,
@@ -597,31 +471,19 @@ def build_layers():
     )
 
     layers = [
-        # ---------------- zones ----------------
         _layer("zones-fill", "zones", "fill", {
             "fill-color": _zone_match("fillColor"),
             "fill-opacity": _zone_fill_opacity(),
         }, registry_id="zones"),
-        # ---------------- population ----------------
-        # Between the zone fill and the zone outline on purpose. All of
-        # these fill the same footprint as the zones, so a choropleth
-        # drawn under the wash would be invisible whenever zones are on;
-        # drawn over the outline it would swallow the boundaries. Here it
-        # covers the wash and the boundaries still read on top.
         *_indicator_layers(),
 
-        # The 100 m grid, above the municipal fills: the same measure at
-        # finer resolution, so the detail wins where both are on.
         _layer("pop-density-100m", "pop_density_100m", "raster", {
             "raster-opacity": _fade(palette.POP_RASTER_OPACITY),
-            # Nearest keeps a 100 m cell a visible cell instead of
-            # smoothing measured counts into a gradient
             "raster-resampling": "nearest",
         }, registry_id="pop_density_100m"),
 
         _layer("zones-outline", "zones", "line", {
             "line-color": _zone_match("color"),
-            # The outline carries the boundary once the fill has faded
             "line-width": [
                 "interpolate", ["linear"], ["zoom"],
                 config.MIN_ZOOM, 0.8,
@@ -630,16 +492,10 @@ def build_layers():
             "line-opacity": 0.9,
         }, registry_id="zones"),
 
-        # ---------------- land use ----------------
-        # Above the zone and indicator fills, below every network. It
-        # describes the character of an area, so it belongs behind the
-        # infrastructure drawn across it — but in front of a regional
-        # wash it would otherwise be buried under.
         _layer("landuse-fill", "landuse", "fill", {
             "fill-color": _landuse_match(),
             "fill-opacity": _fade(palette.LANDUSE_FILL_OPACITY),
         }, registry_id="landuse"),
-        # A hairline so adjacent parcels of one category stay countable
         _layer("landuse-outline", "landuse", "line", {
             "line-color": _landuse_match(),
             "line-width": _ramp(palette.LANDUSE_EDGE_WIDTH, "landuse"),
@@ -651,9 +507,6 @@ def build_layers():
             "fill-opacity": _fade(palette.BUILDING_HEIGHT_OPACITY),
         }, registry_id="buildings"),
 
-        # ---------------- public open space ----------------
-        # Above land use, below every network: open space is a kind of
-        # ground, and the networks cross it.
         _layer("green-spaces-fill", "green_spaces", "fill", {
             "fill-color": _green_space_match(),
             "fill-opacity": _fade(palette.GREEN_SPACE_FILL_OPACITY),
@@ -674,9 +527,6 @@ def build_layers():
             "line-opacity": 0.7,
         }, registry_id="squares"),
 
-        # ---------------- environment ----------------
-        # Water bodies under the lake fill: a riverbank or reservoir is
-        # the same substance, so it takes the same fill.
         _layer("water-bodies", "water_polygons", "fill", {
             "fill-color": palette.WATER_FILL,
             "fill-opacity": palette.WATER_BODY_FILL_OPACITY,
@@ -714,14 +564,12 @@ def build_layers():
             "circle-stroke-width": 0.8,
         }, registry_id="water_structures"),
 
-        # Trees in three tiers: density, then stipple, then symbols
         _layer("trees-heat", "trees", "heatmap", _tree_heatmap(),
                registry_id="trees_density"),
         _layer("trees-circle", "trees", "circle", {
             "circle-color": _tree_match(0),
             "circle-radius": _tree_texture_radius(),
             "circle-stroke-color": palette.TREE_EDGE_COLOR,
-            # The outline would swamp a 1.3 px stipple, so it fades in
             "circle-stroke-width": [
                 "interpolate", ["linear"], ["zoom"], 17, 0, 18, 0.35,
             ],
@@ -731,9 +579,6 @@ def build_layers():
             "circle-stroke-opacity": 0.8,
         }, registry_id="trees_texture"),
 
-        # ---------------- transport ----------------
-        # First, so every network draws over it: this is the substrate
-        # people walk on, not a mode competing with the others.
         _layer("walkways", "walkways", "line", {
             "line-color": palette.WALKWAY_COLOR,
             "line-width": _ramp(palette.WALKWAY_WIDTH, "walkways"),
@@ -768,7 +613,6 @@ def build_layers():
                                     palette.BIKE_SECONDARY_WIDTH[0]),
         }, registry_id="bike_detail"),
 
-        # Bus stop halo and dot stay circles: the radius carries meaning
         _layer("bus-stops-halo", "bus_stops", "circle", {
             "circle-color": palette.BUS_STOP_OUTER_COLOR,
             "circle-radius": _grow(_bus_stop_radius, "bus_stops_outer"),
@@ -782,9 +626,6 @@ def build_layers():
             "circle-opacity": palette.BUS_STOP_DOT_OPACITY,
         }, registry_id="bus_stops_simple"),
 
-        # A single line whose weight and opacity ease with zoom. Folium
-        # needed two layers swapped at z14 because it could not interpolate;
-        # that swap was a visible jump with nothing behind it.
         _layer("metro-line", "metro_line", "line", {
             "line-color": palette.METRO_LINE_COLOR,
             "line-width": _ramp(palette.METRO_LINE_WIDTH, "metro_line"),
@@ -815,7 +656,6 @@ def build_layers():
             "fill-outline-color": palette.PARKING_COLOR,
         }, registry_id="parking_polygons"),
 
-        # ---------------- amenities ----------------
         _layer("education-fill", "education_polygons", "fill", {
             "fill-color": palette.EDUCATION_COLOR,
             "fill-opacity": palette.EDUCATION_FILL_OPACITY,
@@ -833,7 +673,6 @@ def build_layers():
         }, registry_id="culture_lines"),
     ]
 
-    # ---------------- presence hints, before the icons are readable -------
     layers += [
         _hint("parking-hint", "parking_points", "parking_hint",
               palette.PARKING_COLOR),
@@ -843,7 +682,6 @@ def build_layers():
               palette.CULTURE_SYMBOL_COLOR),
         _hint("taxi-hint", "taxi_spots", "taxi_hint", palette.TAXI_COLOR),
 
-        # Section 3B destination hints
         _hint("health-hint", "health_symbols", "health_hint",
               palette.DESTINATION_INK),
         _hint("sport-hint", "sport_symbols", "sport_hint",
@@ -856,7 +694,6 @@ def build_layers():
               palette.PLAYGROUND_SYMBOL_COLOR),
     ]
 
-    # ---------------- plated icons, drawn last so they sit on top ----------
     layers += _plated_symbol(
         "bike-points", "bike_points",
         ["match", ["get", "kind"],
@@ -868,15 +705,12 @@ def build_layers():
         "bike_points", palette.BIKE_COLOR,
         icon_size=1.0, plate=False,
     )
-    # Only the points outside a cluster draw individually
     layers[-1]["filter"] = ["!", ["has", "point_count"]]
 
     layers += _plated_symbol(
         "bus-stops-symbol", "bus_stops",
         bus_stop_icon,
         "bus_stops_symbols", palette.BUS_STOP_SYMBOL_COLOR,
-        # No plate: the marks carry their own white fill where they need
-        # one, exactly as the Folium symbols did.
         icon_size=0.78, plate=False,
     )
     layers += _plated_symbol(
@@ -932,9 +766,6 @@ def build_layers():
         plate_radius=9, icon_size=0.55,
     )
 
-    # Section 3B destinations. Each draws its icon from dest_category,
-    # which classify.py derives from the OSM tags — see there for why the
-    # files' own SUBCATEGORY column is not used.
     for prefix, source, icons, fallback in (
         ("health", "health_symbols",
          palette.HEALTH_ICONS, palette.HEALTH_FALLBACK_CATEGORY),
@@ -961,16 +792,11 @@ def build_layers():
             plate_radius=9, icon_size=0.55,
         )
 
-    # Last in the list, so a hub is never occluded by the infrastructure
-    # it is being judged against, and lowest tier first so the ranking
-    # survives overlap. Every tier excludes the selected hub, or it would
-    # carry both its own mark and the Kinesis one.
     unselected = ["!=", ["get", "hub_selected"], True]
 
     def tier_filter(tier):
         return ["all", ["==", ["get", "hub_tier"], tier], unselected]
 
-    # z12-14: the whole network as one undifferentiated dot
     layers.append(_layer("hub-overview", "hub_network", "circle", {
         "circle-color": palette.HUB_OVERVIEW_COLOR,
         "circle-radius": _ramp(palette.HUB_OVERVIEW_RADIUS, "hub_overview",
@@ -979,7 +805,6 @@ def build_layers():
         "circle-stroke-width": palette.HUB_DOT_STROKE_WIDTH,
     }, registry_id="hub_overview"))
 
-    # 170 street-scale sites: the texture tier, a plain dot
     layers.append(_layer("hub-street", "hub_network", "circle", {
         "circle-color": palette.HUB_STREET_COLOR,
         "circle-radius": _ramp(palette.HUB_STREET_RADIUS, "hub_street"),
@@ -988,8 +813,6 @@ def build_layers():
     }, registry_id="hub_street"))
     layers[-1]["filter"] = tier_filter("Street-scale hub")
 
-    # 44 neighbourhood sites: a ring, drawn as a filled dot with a white
-    # core over it, since MapLibre circles have no inner radius
     layers.append(_layer("hub-neighbourhood", "hub_network", "circle", {
         "circle-color": palette.HUB_NEIGHBOURHOOD_COLOR,
         "circle-radius": _ramp(palette.HUB_NEIGHBOURHOOD_RADIUS,
@@ -1007,8 +830,6 @@ def build_layers():
     }, registry_id="hub_neighbourhood"))
     layers[-1]["filter"] = tier_filter("Neighbourhood hub")
 
-    # 8 connection sites: a double ring, built from three stacked
-    # circles since MapLibre has no inner radius. Blue, white, blue.
     for suffix, ratio, colour in (
         ("", 1.0, palette.HUB_CONNECTION_COLOR),
         ("-mid", palette.HUB_CONNECTION_MID_RATIO, palette.HUB_DOT_STROKE),
@@ -1022,9 +843,6 @@ def build_layers():
                 "hub_connection",
             ),
         }
-        # Only the outer ring carries the white edge that lifts the mark
-        # off the ground; an edge on the inner two would read as a fourth
-        # and fifth ring.
         if not suffix:
             paint["circle-stroke-color"] = palette.HUB_DOT_STROKE
             paint["circle-stroke-width"] = palette.HUB_DOT_STROKE_WIDTH
@@ -1033,7 +851,6 @@ def build_layers():
                              "circle", paint, registry_id="hub_connection"))
         layers[-1]["filter"] = tier_filter("Connection hub")
 
-    # The one chosen site, carrying the Kinesis mark
     layers.append(_layer("mobility-hub-selected", "hub_network", "symbol", {},
                          registry_id="hub_selected"))
     layers[-1]["layout"] = {
@@ -1055,16 +872,8 @@ def icon_sprites():
     return build_layers.sprites
 
 
-# --------------------------------------------------
-# TypeScript emission
-# --------------------------------------------------
-
 def _colour_of(value):
-    """
-    A representative literal colour from a value that may be a paint
-    expression. Scans forward so a match returns its first real case
-    rather than its fallback, and skips fully transparent ramp stops.
-    """
+    """A representative literal colour from a value that may be a paint expression."""
     if isinstance(value, str):
         if value.startswith(("#", "rgb")) and not value.endswith((", 0)", ",0)")):
             return value
@@ -1078,14 +887,7 @@ def _colour_of(value):
 
 
 def _fill_colour(fill):
-    """
-    The colour that stands for a fill in the menu.
-
-    A `step` expression is a graduated scale, so its last colour is the
-    top class — the one that reads as the layer's identity. Anything
-    else (a `match` over categories, a literal) takes the first, since
-    a match's last entry is only its fallback.
-    """
+    """The colour that stands for a fill in the menu."""
     paint = fill["paint"].get("fill-color")
 
     if isinstance(paint, list) and paint and paint[0] == "step":
@@ -1095,14 +897,9 @@ def _fill_colour(fill):
 
 
 def _swatch(parent_id, layers):
-    """
-    How to draw this layer in the menu, taken from the style itself so the
-    legend cannot drift from the map.
-    """
+    """How to draw this layer in the menu, taken from the style itself so the legend cannot drift from the map."""
     mine = [l for l in layers if l["metadata"]["thessmap:parent"] == parent_id]
 
-    # Prefer geometry belonging to the toggle itself over its detail
-    # tiers, so Bike Lanes shows a lane and not a parking icon.
     direct = [l for l in mine if l["metadata"]["thessmap:spec"] == parent_id]
     candidates = direct or mine
 
@@ -1110,19 +907,12 @@ def _swatch(parent_id, layers):
     if symbol is not None:
         icon = symbol["layout"]["icon-image"]
 
-        # Supplied artwork: the chip is drawn with lucide-react, which
-        # cannot show a PNG, so it falls back to the nearest glyph.
         if isinstance(icon, str) and icon in RASTER_ICONS:
             return {"kind": "point", "color": palette.HUB_SWATCH_COLOR,
                     "icon": palette.HUB_SWATCH_ICON}
 
-        # A match expression means the icon varies per feature; the menu
-        # shows the fallback, which is the expression's last entry.
         sprite_id = icon if isinstance(icon, str) else icon[-1]
 
-        # Emit the lucide name, not the sprite id: the menu draws with
-        # lucide-react while the map draws rasters, and only the icon name
-        # is common to both.
         sprite = next((sp for sp in icon_sprites() if sp["id"] == sprite_id), None)
 
         plate = next((l for l in mine if l["id"] == f"{symbol['id']}-plate"), None)
@@ -1136,8 +926,6 @@ def _swatch(parent_id, layers):
     if fill is not None:
         return {"kind": "area", "color": _fill_colour(fill)}
 
-    # A raster carries no vector geometry to sample, so its swatch comes
-    # from the top class of the ramp it was coloured with.
     raster = next((l for l in candidates if l["type"] == "raster"), None)
     if raster is not None:
         return {"kind": "area", "color": palette.POP_DENSITY_RAMP[-1]}
@@ -1169,11 +957,7 @@ def _menu():
     layers = build_layers()
 
     def entry(spec, ids=None, label=None, full=None):
-        """
-        One menu row. `ids` lets several layers share a single switch:
-        a mode's network and its nodes are usually wanted together, and
-        two rows for one idea costs a line for little gain.
-        """
+        """One menu row."""
         swatch = _swatch(spec.id, layers)
         if swatch is None:
             return None
@@ -1187,7 +971,6 @@ def _menu():
             "label": label or spec.menu_label,
             "fullLabel": full or spec.label,
             "show": spec.show,
-            # The earliest zoom at which anything under this switch draws
             "minZoom": min(zooms) if len(zooms) == len(controlled) else None,
             "swatch": swatch,
         }
@@ -1199,7 +982,6 @@ def _menu():
             if item["kind"] == "layer":
                 built = [entry(item["layer"])]
             else:
-                # A mode group collapses to one switch over all its layers
                 members = item["layers"]
                 ids = [l.id for l in members]
                 names = " and ".join(l.menu_label.lower() for l in members)
@@ -1208,9 +990,6 @@ def _menu():
 
             built = [b for b in built if b is not None]
 
-            # Water and buildings are still awaiting vector tiles, so they
-            # have no style layers. A toggle that controls nothing is worse
-            # than an absent one.
             if not built:
                 continue
 
@@ -1260,7 +1039,6 @@ def write_layers_ts(path, verbose=True):
         "  label: string;",
         "  theme: Theme;",
         "  show: boolean;",
-        "  /** Lowest zoom at which anything in this layer draws. */",
         "  minZoom: number | null;",
         "}\n",
         f"export const THEMES: Record<Theme, string> = {_ts(themes)};\n",
@@ -1271,28 +1049,23 @@ def write_layers_ts(path, verbose=True):
         "export interface LegendBlock {",
         "  title: string;",
         "  kind: \"swatches\" | \"lines\" | \"gradient\" | \"icons\" | \"marks\";",
-        "  /** Sidebar theme this block groups under. */",
         "  theme: Theme;",
-        "  /** Shown only while this layer is drawn. Per-entry for lines. */",
         "  layer?: string;",
-        "  /** Shown while any of these is drawn — for layers sharing a scale. */",
+        "  /** Drawn while any of these is on. */",
         "  anyOf?: string[];",
         "  entries?: {",
         "    label: string;",
         "    color?: string;",
         "    dashed?: boolean;",
         "    layer?: string;",
-        "    /** lucide name, for kind \"icons\" and mark \"glyph\". */",
         "    icon?: string;",
-        "    /** Which mark to draw, for kind \"marks\". */",
         "    mark?: \"double-ring\" | \"ring\" | \"dot\" | \"logo\";",
-        "    /** Centre colour, for mark \"double-ring\". */",
+        "    /** Centre colour of a double ring. */",
         "    core?: string;",
         "  }[];",
         "  stops?: string[];",
         "  min?: string;",
         "  max?: string;",
-        "  /** Appended to the block title, e.g. a unit of measure. */",
         "  unit?: string;",
         "}\n",
         f"export const LEGEND: Record<string, LegendBlock> = {_ts(_legend())};\n",
@@ -1305,37 +1078,30 @@ def write_layers_ts(path, verbose=True):
         "}\n",
         f"export const MAP_CONFIG: MapConfig = {_ts(_map_config())};\n",
         "export interface IconSprite {",
-        "  /** Registered with map.addImage() under this id. */",
         "  id: string;",
-        "  /** lucide icon name, see lucide.dev */",
         "  lucide: string;",
         "  color: string;",
         "  size: number;",
         "}\n",
         f"export const ICON_SPRITES: IconSprite[] = {_ts(icon_sprites())};\n",
-        "/** Only one layer per group may be on: they fill the same area. */",
+        "/** Only one layer per group may be on. */",
         f"export const EXCLUSIVE_GROUPS: string[][] = {_ts(registry.EXCLUSIVE)};\n",
-        "/** Property value -> display label, by property name. */",
         "export const VALUE_LABELS: Record<string, Record<string, string>> =",
         f"  {_ts({'LU_GROUP': palette.LANDUSE_LABELS})};\n",
-        "/** Supplied artwork registered with addImage, by sprite id. */",
         f"export const RASTER_ICONS: Record<string, string> = {_ts(RASTER_ICONS)};\n",
         "export interface RasterSource {",
-        "  /** PNG filename under public/data. */",
         "  url: string;",
         "  /** Four corners in EPSG:4326, clockwise from top-left. */",
         "  coordinates: [number, number][];",
         "}\n",
         "export const RASTER_SOURCES: Record<string, RasterSource> =",
         f"  {_ts(_raster_sources())};\n",
-        "/** Always on and absent from the menu; the frontend forces these true. */",
         f"export const PINNED_LAYERS: string[] = {_ts(registry.PINNED)};\n",
         "/** {layer: zoom past which it switches itself off}. */",
         f"export const AUTO_HIDE: Record<string, number> = "
         f"{_ts(registry.AUTO_HIDE)};\n",
-        "/** Fetched on first use, not at startup: too large to load eagerly. */",
+        "/** Fetched on first use, not at startup. */",
         f"export const LAZY_SOURCES: string[] = {_ts(LAZY_SOURCES)};\n",
-        "/** Badge colour for clustered sources, from palette.py. */",
         f"export const CLUSTER_COLOR = {_ts(palette.BIKE_CLUSTER_COLOR)};\n",
         "export interface ClusterConfig { radius: number; maxZoom: number }\n",
         "export const CLUSTERED_SOURCES: Record<string, ClusterConfig> =",
@@ -1343,14 +1109,11 @@ def write_layers_ts(path, verbose=True):
         "export interface Swatch {",
         "  kind: \"point\" | \"line\" | \"area\";",
         "  color: string | null;",
-        "  /** lucide name, when the layer draws an icon. */",
         "  icon?: string | null;",
         "  dashed?: boolean;",
         "}\n",
         "export interface MenuLayer {",
-        "  /** Primary layer, used for the swatch. */",
         "  id: string;",
-        "  /** Every layer this one switch controls. */",
         "  ids: string[];",
         "  label: string;",
         "  fullLabel: string;",
@@ -1397,12 +1160,7 @@ def _min_zoom_of(parent_id):
 
 
 def _raster_sources():
-    """
-    Where each PNG belongs on the map, read from the source GeoTIFF.
-
-    Only the extent is read, not the pixels, so this stays cheap and does
-    not depend on the PNG having been rendered yet.
-    """
+    """Where each PNG belongs on the map, read from the source GeoTIFF."""
     from . import rasterexport
 
     return {
@@ -1415,13 +1173,7 @@ def _raster_sources():
 
 
 def _indicator_legend(indicator):
-    """
-    One row per Jenks class, labelled with its range.
-
-    Ranges rather than bare class numbers: the whole point of Natural
-    Breaks is that the class widths are uneven, so "462 - 4,000" tells
-    the reader something "class 2" cannot.
-    """
+    """One row per Jenks class, labelled with its range."""
     from . import classify
     from .data import MapData
 
@@ -1432,9 +1184,6 @@ def _indicator_legend(indicator):
         return f"{value:,.{indicator.decimals}f}"
 
     def band(low, high):
-        # With 14 values and 5 classes, Jenks can isolate a single
-        # municipality at either end. "19.4 - 19.4" reads as a bug, so a
-        # one-value class shows its value instead of a null range.
         if figure(low) == figure(high):
             return figure(low)
         return f"{figure(low)} \u2013 {figure(high)}"
@@ -1445,10 +1194,6 @@ def _indicator_legend(indicator):
     ]
 
 
-# Amenity legend cards. Each names the icons one toggle draws, so the
-# six grey symbol layers stop relying on the reader inferring a glyph.
-#
-# (layer id, card title, {category: lucide})
 AMENITY_KEYS = [
     ("education", "Education", palette.EDUCATION_ICONS),
     ("culture", "Culture", palette.CULTURE_ICONS),
@@ -1461,14 +1206,7 @@ AMENITY_KEYS = [
 
 
 def _amenity_legend():
-    """
-    One card per amenity toggle, listing its icons.
-
-    Deduplicated by icon, keeping the first category that claims it: two
-    categories can legitimately share a glyph — "Hospital" and "Hospital
-    with emergency", "Government office" and "Public service" — and a
-    legend showing one mark twice teaches nothing and looks like a bug.
-    """
+    """One card per amenity toggle, listing its icons."""
 
     blocks = {}
 
@@ -1502,22 +1240,7 @@ def _all_indicators():
 
 
 def _legend():
-    """
-    Legend blocks, grouped by category and each tied to the layer that
-    justifies it. A block only renders when its layer is drawn, so the
-    legend never explains a symbol that is not on screen.
-
-    Tree height is a gradient rather than six rows: it is one hue varying
-    by luminance, which is a scale, and a scale reads as a bar.
-
-    Bus service intensity is deliberately absent. Five grey dots between
-    8 and 16 px are barely distinguishable at legend size, and the circles
-    read as relative weight on the map without being enumerated.
-
-    Every block carries the theme of the layer it explains, so the legend
-    groups under the same headings as the sidebar rather than presenting
-    fourteen cards as one undifferentiated stack.
-    """
+    """Legend blocks, grouped by category and each tied to the layer that justifies it."""
 
     return _themed({
         "zones": {
@@ -1529,9 +1252,6 @@ def _legend():
                 for zone, style in palette.ZONE_STYLES.items()
             ],
         },
-        # Split from the network block below. It used to sit at the top of
-        # it, which was harmless as one flat stack and wrong the moment
-        # the legend grouped by theme: a river is not transport.
         "water": {
             "title": "Water",
             "kind": "lines",
@@ -1559,10 +1279,6 @@ def _legend():
                  "dashed": True, "layer": "bike_lanes_proposed"},
             ],
         },
-        # The five point layers the legend used to skip. They are the
-        # marks a reader is least able to infer: four of the bus stop
-        # symbols are geometric rather than pictorial, and nothing on
-        # screen says a half-filled circle is an interchange.
         "nodes": {
             "title": "Stops & stations",
             "kind": "icons",
@@ -1603,9 +1319,6 @@ def _legend():
                                          palette.BUILDING_HEIGHT_RAMP)
             ],
         },
-        # Drawn as the marks themselves rather than as colour chips: the
-        # three tiers differ by structure and size, not only by hue, so a
-        # row of squares would have described none of what is on screen.
         "hubs": {
             "title": "Hub network",
             "kind": "marks",
@@ -1632,19 +1345,10 @@ def _legend():
             ],
         },
 
-        # Amenity icon keys, before the indicators: they are the layers a
-        # reader most needs a key for, being six grey symbol sets that
-        # differ only by glyph.
         **_amenity_legend(),
 
-        # One block per indicator. They are mutually exclusive, so at most
-        # one of these is ever on screen. The 100 m grid shares the
-        # density block, being classified with the same breaks from the
-        # same ramp — a second card would have repeated it row for row.
         **{
             f"indicator_{indicator.id}": {
-                # Short: the card is 10.5rem wide, and the full name
-                # would wrap to three lines
                 "title": "Population density",
                 "kind": "swatches",
                 "anyOf": ([indicator.layer_id, "pop_density_100m"]
@@ -1669,18 +1373,7 @@ def _legend():
 
 
 def _themed(blocks):
-    """
-    Tags each block with the theme of the layer it explains.
-
-    Derived from the registry rather than written out per block: a layer
-    that moves between themes — buildings did, land use did — would
-    otherwise leave the legend grouping it under the old heading with
-    nothing to catch it.
-
-    A block that names no single layer (the transport key, whose rows
-    span water, walkways and three modes) sets "theme" itself and is
-    left alone.
-    """
+    """Tags each block with the theme of the layer it explains."""
 
     theme_of = {layer.id: layer.theme for layer in registry.LAYERS}
 
@@ -1720,23 +1413,4 @@ def _map_config():
         "minZoom": config.MIN_ZOOM,
         "maxZoom": config.MAX_ZOOM,
         "center": [longitude, latitude],
-    }
-
-
-def basemap_style():
-    """The Positron raster basemap as a MapLibre style."""
-
-    return {
-        "version": 8,
-        "sources": {
-            "positron": {
-                "type": "raster",
-                "tiles": [config.BASEMAP_TILES.replace("{s}", "a")],
-                "tileSize": 256,
-                "attribution": config.BASEMAP_ATTRIBUTION,
-            }
-        },
-        "layers": [
-            {"id": "basemap", "type": "raster", "source": "positron"}
-        ],
     }

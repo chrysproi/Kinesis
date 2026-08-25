@@ -1,15 +1,7 @@
-# Source data — 1.5 GB of GeoPackages and rasters, not for version control.
-#
-# Anchored with a leading slash, which matters more than it looks: an
-# unanchored "data/" matches a directory of that name at every level, so
-# it was also excluding web/public/data — the exported GeoJSON the site
-# actually loads, and the one thing a clone cannot regenerate without
-# the 1.5 GB these patterns exist to keep out.
 /data/
 /outputs/
 /tmp/
 
-# Python
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -17,19 +9,11 @@ __pycache__/
 /dist/
 .venv/
 venv/
-
-# Jupyter
 .ipynb_checkpoints/
 
-# Node
 node_modules/
 web/dist/
 
-# macOS
 .DS_Store
-
-# Local editor and agent settings. The VS Code entries point at a conda
-# environment on one machine, so they are local setup rather than
-# anything the project needs to build.
 .vscode/
 .claude/settings.local.json

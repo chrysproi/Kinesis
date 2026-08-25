@@ -1,8 +1,4 @@
-"""Turning source GeoPackages into web-ready layers.
-
-`run()` is the whole pipeline; `prepare_web_layer()` is the single
-function that handles every layer needing only clip/simplify/reproject.
-"""
+"""Turning source GeoPackages into web-ready layers."""
 
 from .amenities import prepare_culture, prepare_education
 from .pipeline import prepare_web_layer

@@ -5,8 +5,6 @@ import {
   Popup,
   ScaleControl,
 } from "maplibre-gl";
-// Point is a type only: MapLibre v6 has no default export, so it must
-// never be imported as a value.
 import type { LayerSpecification, Point } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -27,21 +25,18 @@ import { attachClusters } from "./clusters";
 import { loadIcons } from "./icons";
 import { featurePopupHtml } from "./popup";
 
-const DATA_URL = (name: string) => `${import.meta.env.BASE_URL}data/${name}.geojson`;
+const DATA_URL = (name: string) => `${import.meta.env.BASE_URL}data/${name}.json`;
 const ASSET_URL = (file: string) => `${import.meta.env.BASE_URL}data/${file}`;
 
-/** Which sidebar toggle owns a given map layer. */
 const parentOf = (layer: (typeof MAP_LAYERS)[number]) =>
   layer.metadata["thessmap:parent"];
 
 const LABEL_BY_ID = new Map(TOGGLE_LAYERS.map((l) => [l.id, l.label]));
 
-/** The card's eyebrow: what kind of thing was clicked. */
 const kindOf = (layer: (typeof MAP_LAYERS)[number]) =>
   LABEL_BY_ID.get(parentOf(layer));
 
 interface MapViewProps {
-  /** Hands the parent a way to change zoom, for the sidebar's z-buttons. */
   onReady?: (flyToZoom: (zoom: number) => void) => void;
 }
 
@@ -57,7 +52,6 @@ export default function MapView({ onReady }: MapViewProps) {
 
   useHashState(view);
 
-  // ---------------------------------------------- create the map once
   useEffect(() => {
     if (!container.current || map.current) return;
 
@@ -69,8 +63,6 @@ export default function MapView({ onReady }: MapViewProps) {
       style: basemapStyle(),
       center: [initial.lon, initial.lat],
       zoom: initial.zoom,
-      // Clamped to the study area: without this the map happily fetches
-      // world tiles for regions we hold no data for.
       maxBounds: MAP_CONFIG.bounds,
       minZoom: MAP_CONFIG.minZoom,
       maxZoom: MAP_CONFIG.maxZoom,
@@ -78,7 +70,6 @@ export default function MapView({ onReady }: MapViewProps) {
     });
 
 
-    // Bottom-right: the legend occupies the top-right corner
     instance.addControl(new NavigationControl({ visualizePitch: true }), "bottom-right");
     instance.addControl(new ScaleControl({ maxWidth: 120 }), "bottom-left");
 
@@ -89,7 +80,6 @@ export default function MapView({ onReady }: MapViewProps) {
     };
 
     instance.on("load", async () => {
-      // Icons must exist before layers reference them by icon-image
       await loadIcons(instance);
       addThematicLayers(instance);
       setReady(true);
@@ -106,11 +96,9 @@ export default function MapView({ onReady }: MapViewProps) {
       instance.remove();
       map.current = null;
     };
-    // Basemap changes are handled separately, below
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ---------------------------------------------- visibility
   useEffect(() => {
     const instance = map.current;
     if (!instance || !ready) return;
@@ -118,9 +106,6 @@ export default function MapView({ onReady }: MapViewProps) {
     for (const layer of MAP_LAYERS) {
       const on = visible[parentOf(layer)];
 
-      // A deferred source is fetched the first time its layer is asked
-      // for, and never if it is not. Switching one off does not unload
-      // it: a toggle the user flicks twice should not re-download 64 MB.
       if (on && !instance.getLayer(layer.id)) addDeferred(instance, layer);
       if (!instance.getLayer(layer.id)) continue;
 
@@ -131,15 +116,10 @@ export default function MapView({ onReady }: MapViewProps) {
   }, [visible, ready]);
 
 
-  // Sized directly rather than with `absolute inset-0`: MapLibre's own
-  // stylesheet sets `.maplibregl-map { position: relative }` and is
-  // injected after Tailwind, so it wins and the inset stops applying.
   return <div ref={container} className="h-full w-full" />;
 }
 
-/** Adds every generated source and layer, then wires up click popups. */
 function addThematicLayers(instance: MapLibreMap) {
-  // Interactive layers, topmost last — the order they were added.
   const clickable = MAP_LAYERS.filter(
     (layer) => layer.metadata["thessmap:interactive"],
   ).map((layer) => layer.id);
@@ -149,16 +129,12 @@ function addThematicLayers(instance: MapLibreMap) {
     addGeoJsonSource(instance, name);
   }
 
-  // Rasters ship as pre-coloured PNGs behind an image source: MapLibre
-  // reads no GeoTIFF, and the PNG is already in Web Mercator, so the
-  // four corners place it without any warping in the browser.
   for (const [name, raster] of Object.entries(RASTER_SOURCES)) {
     if (instance.getSource(name)) continue;
 
     instance.addSource(name, {
       type: "image",
       url: ASSET_URL(raster.url),
-      // Exactly four corners, which the generated type guarantees
       coordinates: raster.coordinates as [
         [number, number],
         [number, number],
@@ -175,7 +151,6 @@ function addThematicLayers(instance: MapLibreMap) {
 
   attachInteraction(instance, clickable);
 
-  // Cluster badges for any source that clusters
   for (const name of Object.keys(CLUSTERED_SOURCES)) {
     const owner = MAP_LAYERS.find((layer) => layer.source === name);
     if (!owner) continue;
@@ -212,14 +187,7 @@ function addGeoJsonSource(instance: MapLibreMap, name: string) {
   });
 }
 
-/**
- * Adds a layer in its generated position rather than on top.
- *
- * A deferred layer arrives after its neighbours, so `addLayer` alone
- * would stack it above everything — putting buildings over the transit
- * network. The `beforeId` is the next already-present layer in generated
- * order, which restores the intended draw order whenever it is added.
- */
+/** Adds a layer in its generated position rather than on top. */
 function addLayerAt(instance: MapLibreMap, layer: Layer) {
   if (instance.getLayer(layer.id)) return;
 
@@ -228,9 +196,6 @@ function addLayerAt(instance: MapLibreMap, layer: Layer) {
     instance.getLayer(next.id),
   );
 
-  // Merge into any generated layout rather than replacing it: symbol
-  // layers carry icon-image and icon-size there, and overwriting the
-  // whole object silently strips the icon with no MapLibre warning.
   const generated = (layer as { layout?: Record<string, unknown> }).layout;
 
   instance.addLayer(
@@ -242,7 +207,6 @@ function addLayerAt(instance: MapLibreMap, layer: Layer) {
   );
 }
 
-/** Fetches a deferred source and adds its layer, on first use. */
 function addDeferred(instance: MapLibreMap, layer: Layer) {
   if (!LAZY_SOURCES.includes(layer.source)) return;
 
@@ -250,30 +214,17 @@ function addDeferred(instance: MapLibreMap, layer: Layer) {
   addLayerAt(instance, layer);
 }
 
-/** Cluster badge controllers, so a visibility change can re-sync them. */
 const clusterSyncs: Array<{ sync: () => void; clear: () => void } | undefined> = [];
 
 
 
-/**
- * A single map-level click, rather than a handler per layer.
- *
- * Bus stops stack a halo, a dot and a symbol at the same coordinate, so
- * per-layer handlers fired three times for one click and opened three
- * identical popups. Querying at the point instead returns the topmost
- * feature once, and one reused Popup means no stacking.
- */
+/** One map-level click handler, not one per layer. */
 function attachInteraction(instance: MapLibreMap, layers: string[]) {
   const popup = new Popup({ closeButton: true, maxWidth: "none", offset: 10 });
-  // Keyed by plain string: MAP_LAYERS is `as const`, so inferring the
-  // key type would give a literal union that a runtime feature.layer.id
-  // cannot be assigned to.
   const layerById = new Map<string, (typeof MAP_LAYERS)[number]>(
     MAP_LAYERS.map((layer) => [layer.id, layer]),
   );
 
-  // queryRenderedFeatures returns topmost first, and only from layers
-  // that are currently visible.
   const topmost = (point: Point) => {
     const present = layers.filter((id) => instance.getLayer(id));
     return instance.queryRenderedFeatures(point, { layers: present })[0];

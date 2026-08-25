@@ -1,10 +1,4 @@
-"""The map builder.
-
-Holds the Folium map, the data source and the feature groups, and wires
-zoom rules automatically from the registry. Layer modules never mention a
-zoom number: they ask for a group by id, and the threshold comes from
-`registry.py`.
-"""
+"""The map builder."""
 
 import folium
 
@@ -22,20 +16,11 @@ class MapBuilder:
         self.map = create_map(center=center, zoom=zoom)
         self.groups = {}
 
-        # Most layers default to off, which is right for the finished map
-        # but useless in a preview of one theme. show_all switches every
-        # parent layer on so a subset is visible without clicking.
         self.show_all = show_all
 
-    # ---------------------------------------------- groups
 
     def group(self, layer_id):
-        """
-        Feature group for a registry layer, created on first request.
-
-        Parent layers appear in the layer menu. Detail layers are hidden
-        from it and driven by zoom instead.
-        """
+        """Feature group for a registry layer, created on first request."""
 
         if layer_id in self.groups:
             return self.groups[layer_id]
@@ -52,13 +37,6 @@ class MapBuilder:
 
         return group
 
-    def add_groups(self, *layer_ids):
-        """Attach groups to the map, in the order given."""
-
-        for layer_id in layer_ids:
-            self.group(layer_id).add_to(self.map)
-
-    # ---------------------------------------------- assembly
 
     def zoom_rules(self):
         """Build zoom rules from the registry for whatever was created."""

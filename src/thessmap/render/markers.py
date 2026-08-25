@@ -1,8 +1,4 @@
-"""Marker and symbol construction.
-
-Replaces the Marker + DivIcon block that was repeated for metro, ferry,
-parking, taxi, education, culture and bus stop symbols.
-"""
+"""Marker and symbol construction."""
 
 import folium
 

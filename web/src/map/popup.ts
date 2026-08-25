@@ -1,29 +1,8 @@
-/**
- * Feature cards.
- *
- * Styled as an annotation on an architectural drawing rather than a web
- * tooltip: a letterspaced eyebrow naming the layer, one strong title, a
- * hairline rule, then a label/value grid with figures set in mono.
- *
- * Styles live in index.css under `.tm-*` because MapLibre injects this
- * HTML into its own DOM, outside React and outside Tailwind's reach.
- */
+/** Feature cards. Styles live in index.css under `.tm-*`. */
 
 import { VALUE_LABELS } from "../generated/layers";
 
-/**
- * Fields worth showing, in the order they should appear.
- *
- * `symbol_origin` is deliberately absent. It records whether a symbol
- * came from a polygon or a standalone node — bookkeeping the thinning
- * step needs and a reader never does. It surfaced as a "Derived from"
- * row on most amenities, and on an unnamed playground node it was the
- * only field present, so it became the card's heading: a popup whose
- * entire content was the word "node".
- *
- * With it gone, a feature carrying nothing else returns null and no card
- * opens at all, which is the right answer.
- */
+/** Fields worth showing, in the order they should appear. */
 const PREFERRED = [
   "name",
   "name:el",
@@ -111,12 +90,6 @@ const UNITS: Record<string, string> = {
   POP_DENS: "inhab./km\u00b2",
 };
 
-/**
- * How to render a figure. Census counts and densities are read as
- * magnitudes, so they take thousands separators; an area of 21.36 km2
- * would be false precision at more than two decimals, and a density
- * estimate at any.
- */
 const FIGURES: Record<string, (value: number) => string> = {
   POP_2021: (value) => value.toLocaleString("en-GB"),
   POP_DENS: (value) => Math.round(value).toLocaleString("en-GB"),
@@ -127,8 +100,6 @@ const FIGURES: Record<string, (value: number) => string> = {
 
 /** Formats a value for display, falling through to the raw string. */
 const format = (key: string, value: unknown) => {
-  // Coded values get their display label from Python, so the popup and
-  // the legend can never disagree about what RESIDENTIAL is called.
   const labelled = VALUE_LABELS[key]?.[String(value)];
   if (labelled) return labelled;
 
@@ -139,13 +110,7 @@ const format = (key: string, value: unknown) => {
   return Number.isFinite(numeric) ? figure(numeric) : String(value);
 };
 
-/**
- * Fields that may appear as a row but never as the card's title.
- *
- * The title is the first present field, which works while that field is
- * a name. Buildings carry no name at all, so a roof height of 31.3 was
- * being set as the heading — a measurement pretending to be an identity.
- */
+/** Fields that may appear as a row but never as the card's title. */
 const NEVER_TITLE = new Set([
   "ROOF_H",
   "MAX_FLOOR",
@@ -186,16 +151,7 @@ const present = (properties: Record<string, unknown>, key: string) => {
   return value !== undefined && value !== null && String(value).trim() !== "";
 };
 
-/**
- * Source layers carry wildly different attributes — OSM tags on some,
- * Greek national schema fields on others — so show the fields known to
- * be meaningful and skip the rest.
- *
- * Returns null when the feature carries nothing worth showing, so the
- * caller can skip the popup instead of opening an empty card.
- *
- * @param kind Human label for the layer clicked, shown as the eyebrow.
- */
+/** Null when the feature carries nothing worth showing. */
 export function featurePopupHtml(
   properties: Record<string, unknown>,
   kind?: string,
@@ -206,9 +162,6 @@ export function featurePopupHtml(
 
   const eyebrow = kind ? `<p class="tm-kind">${escape(kind)}</p>` : "";
 
-  // A measurement is never the heading. When nothing else identifies the
-  // feature, the layer name becomes the title and the eyebrow is dropped
-  // rather than repeating it twice.
   const titleKey = rows.find((key) => !NEVER_TITLE.has(key));
   const rest = rows.filter((key) => key !== titleKey);
 

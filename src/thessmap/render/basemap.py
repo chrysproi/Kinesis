@@ -4,8 +4,6 @@ import folium
 
 from .. import config
 
-# Lower z_index draws first. Zone fill sits at the very back, zone
-# outlines on top of everything.
 PANES = [
     ("zones_fill_pane", 350),
     ("culture_polygon_pane", 550),
@@ -18,7 +16,6 @@ PANES = [
     ("zones_outline_pane", 700),
 ]
 
-# Leaflet draws a focus outline around clicked vector features
 FOCUS_OUTLINE_CSS = """
 <style>
 .leaflet-interactive:focus {

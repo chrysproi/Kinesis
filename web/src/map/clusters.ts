@@ -2,15 +2,7 @@ import { Marker, type GeoJSONSource, type Map as MapLibreMap } from "maplibre-gl
 
 import { CLUSTERED_SOURCES } from "../generated/layers";
 
-/**
- * Cluster badges, as DOM markers.
- *
- * MapLibre can cluster a GeoJSON source, but drawing the count needs a
- * `text-field`, which needs a `glyphs` endpoint the style does not have —
- * it is a raster basemap with no font server. So the bubbles are DOM
- * markers instead, which is also what Folium's MarkerCluster did, and
- * there are only ever a handful on screen.
- */
+/** Cluster badges as DOM markers: a raster basemap serves no glyphs. */
 export function attachClusters(
   instance: MapLibreMap,
   sourceId: string,
@@ -39,7 +31,6 @@ export function attachClusters(
   const sync = () => {
     if (!instance.getSource(sourceId)) return;
 
-    // Above the cluster ceiling, or with the layer off, show nothing
     if (!options.isVisible() || instance.getZoom() > config.maxZoom) {
       clear();
       return;
@@ -62,8 +53,6 @@ export function attachClusters(
       const element = badge(count);
       const coordinates = feature.geometry.coordinates as [number, number];
 
-      // Folium's zoom_to_bounds_on_click: open the cluster by zooming to
-      // the level at which it splits.
       element.addEventListener("click", () => {
         const source = instance.getSource(sourceId) as GeoJSONSource;
         source

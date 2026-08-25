@@ -8,7 +8,6 @@ export interface ToggleLayer {
   label: string;
   theme: Theme;
   show: boolean;
-  /** Lowest zoom at which anything in this layer draws. */
   minZoom: number | null;
 }
 
@@ -25,28 +24,23 @@ export const MAP_LAYERS = [{"id": "zones-fill", "type": "fill", "source": "zones
 export interface LegendBlock {
   title: string;
   kind: "swatches" | "lines" | "gradient" | "icons" | "marks";
-  /** Sidebar theme this block groups under. */
   theme: Theme;
-  /** Shown only while this layer is drawn. Per-entry for lines. */
   layer?: string;
-  /** Shown while any of these is drawn — for layers sharing a scale. */
+  /** Drawn while any of these is on. */
   anyOf?: string[];
   entries?: {
     label: string;
     color?: string;
     dashed?: boolean;
     layer?: string;
-    /** lucide name, for kind "icons" and mark "glyph". */
     icon?: string;
-    /** Which mark to draw, for kind "marks". */
     mark?: "double-ring" | "ring" | "dot" | "logo";
-    /** Centre colour, for mark "double-ring". */
+    /** Centre colour of a double ring. */
     core?: string;
   }[];
   stops?: string[];
   min?: string;
   max?: string;
-  /** Appended to the block title, e.g. a unit of measure. */
   unit?: string;
 }
 
@@ -63,9 +57,7 @@ export interface MapConfig {
 export const MAP_CONFIG: MapConfig = {"bounds": [21.49, 39.85, 24.77, 41.51], "minZoom": 9, "maxZoom": 19, "center": [22.9444, 40.6401]};
 
 export interface IconSprite {
-  /** Registered with map.addImage() under this id. */
   id: string;
-  /** lucide icon name, see lucide.dev */
   lucide: string;
   color: string;
   size: number;
@@ -73,18 +65,15 @@ export interface IconSprite {
 
 export const ICON_SPRITES: IconSprite[] = [{"id": "bike-parking", "lucide": "bike-parking", "color": "#FF7300", "size": 24}, {"id": "bike-rental", "lucide": "bike-rental", "color": "#FF7300", "size": 24}, {"id": "bus-info-stop", "lucide": "stop-ring", "color": "#FF0055", "size": 24}, {"id": "bus-operational-facility", "lucide": "stop-minor", "color": "#FF0055", "size": 24}, {"id": "bus-regular-stop", "lucide": "stop-dot", "color": "#FF0055", "size": 24}, {"id": "bus-terminal-stop", "lucide": "stop-bullseye", "color": "#FF0055", "size": 24}, {"id": "bus-transfer-station", "lucide": "stop-split", "color": "#FF0055", "size": 24}, {"id": "commercial-department-store", "lucide": "shopping-bag", "color": "#495057", "size": 24}, {"id": "commercial-retail", "lucide": "store", "color": "#495057", "size": 24}, {"id": "commercial-shopping-mall", "lucide": "store", "color": "#495057", "size": 24}, {"id": "commercial-supermarket", "lucide": "shopping-cart", "color": "#495057", "size": 24}, {"id": "culture-art-exhibition-space", "lucide": "frame", "color": "#495057", "size": 24}, {"id": "culture-castle-fortification", "lucide": "castle", "color": "#495057", "size": 24}, {"id": "culture-historic-monument", "lucide": "landmark", "color": "#495057", "size": 24}, {"id": "culture-historic-site", "lucide": "landmark", "color": "#495057", "size": 24}, {"id": "culture-library", "lucide": "library", "color": "#495057", "size": 24}, {"id": "culture-museum", "lucide": "amphora", "color": "#495057", "size": 24}, {"id": "culture-religious-heritage", "lucide": "church", "color": "#495057", "size": 24}, {"id": "culture-theatre", "lucide": "drama", "color": "#495057", "size": 24}, {"id": "education-college", "lucide": "graduation-cap", "color": "#868E96", "size": 24}, {"id": "education-education", "lucide": "school", "color": "#868E96", "size": 24}, {"id": "education-kindergarten", "lucide": "school", "color": "#868E96", "size": 24}, {"id": "education-research-institute", "lucide": "flask-conical", "color": "#868E96", "size": 24}, {"id": "education-school", "lucide": "school", "color": "#868E96", "size": 24}, {"id": "education-training-institute", "lucide": "book-open", "color": "#868E96", "size": 24}, {"id": "education-university", "lucide": "graduation-cap", "color": "#868E96", "size": 24}, {"id": "ferry-terminal", "lucide": "ship", "color": "#495057", "size": 24}, {"id": "health-hospital", "lucide": "hospital", "color": "#495057", "size": 24}, {"id": "health-hospital-with-emergency", "lucide": "hospital", "color": "#495057", "size": 24}, {"id": "metro-station", "lucide": "metro-m", "color": "#000000", "size": 24}, {"id": "parking", "lucide": "square-parking", "color": "#8AA8FF", "size": 24}, {"id": "playground", "lucide": "toy-brick", "color": "#495057", "size": 24}, {"id": "public-services-courthouse", "lucide": "scale", "color": "#495057", "size": 24}, {"id": "public-services-fire-station", "lucide": "flame", "color": "#495057", "size": 24}, {"id": "public-services-government-office", "lucide": "briefcase", "color": "#495057", "size": 24}, {"id": "public-services-police", "lucide": "shield", "color": "#495057", "size": 24}, {"id": "public-services-post-office", "lucide": "mail", "color": "#495057", "size": 24}, {"id": "public-services-public-service", "lucide": "briefcase", "color": "#495057", "size": 24}, {"id": "public-services-town-hall", "lucide": "building-2", "color": "#495057", "size": 24}, {"id": "sport-sports-facility", "lucide": "goal", "color": "#495057", "size": 24}, {"id": "sport-sports-pitch", "lucide": "goal", "color": "#495057", "size": 24}, {"id": "sport-stadium", "lucide": "trophy", "color": "#495057", "size": 24}, {"id": "taxi", "lucide": "car-taxi-front", "color": "#212529", "size": 24}];
 
-/** Only one layer per group may be on: they fill the same area. */
+/** Only one layer per group may be on. */
 export const EXCLUSIVE_GROUPS: string[][] = [["zones", "ind_pop_density", "pop_density_100m"]];
 
-/** Property value -> display label, by property name. */
 export const VALUE_LABELS: Record<string, Record<string, string>> =
   {"LU_GROUP": {"RESIDENTIAL": "Residential", "COMMERCIAL": "Commercial", "INDUSTRIAL": "Industrial", "PUBLIC_INSTITUTIONAL": "Public & institutional", "TRANSPORT_LOGISTICS": "Transport & logistics", "GREEN_RECREATION": "Green & recreation", "AGRICULTURAL_NATURAL": "Agricultural & natural", "OTHER_TRANSITION": "Other / transitional"}};
 
-/** Supplied artwork registered with addImage, by sprite id. */
 export const RASTER_ICONS: Record<string, string> = {"mobility-hub": "mobility-hub.png"};
 
 export interface RasterSource {
-  /** PNG filename under public/data. */
   url: string;
   /** Four corners in EPSG:4326, clockwise from top-left. */
   coordinates: [number, number][];
@@ -93,16 +82,14 @@ export interface RasterSource {
 export const RASTER_SOURCES: Record<string, RasterSource> =
   {"pop_density_100m": {"url": "pop_density_100m.png", "coordinates": [[22.397894297610392, 41.0066080482094], [23.84057141750265, 41.0066080482094], [23.84057141750265, 40.34815305434151], [22.397894297610392, 40.34815305434151]]}};
 
-/** Always on and absent from the menu; the frontend forces these true. */
 export const PINNED_LAYERS: string[] = ["green_spaces", "squares"];
 
 /** {layer: zoom past which it switches itself off}. */
 export const AUTO_HIDE: Record<string, number> = {"zones": 9};
 
-/** Fetched on first use, not at startup: too large to load eagerly. */
+/** Fetched on first use, not at startup. */
 export const LAZY_SOURCES: string[] = ["buildings_height", "trees"];
 
-/** Badge colour for clustered sources, from palette.py. */
 export const CLUSTER_COLOR = "#FF7300";
 
 export interface ClusterConfig { radius: number; maxZoom: number }
@@ -113,15 +100,12 @@ export const CLUSTERED_SOURCES: Record<string, ClusterConfig> =
 export interface Swatch {
   kind: "point" | "line" | "area";
   color: string | null;
-  /** lucide name, when the layer draws an icon. */
   icon?: string | null;
   dashed?: boolean;
 }
 
 export interface MenuLayer {
-  /** Primary layer, used for the swatch. */
   id: string;
-  /** Every layer this one switch controls. */
   ids: string[];
   label: string;
   fullLabel: string;

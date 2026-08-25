@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """Build web-ready layers from the source GeoPackages.
 
     python scripts/prepare_layers.py --dry-run

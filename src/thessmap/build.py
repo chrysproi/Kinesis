@@ -1,14 +1,8 @@
-"""Assembling the whole map.
-
-Draw order matters, so layers are listed explicitly rather than
-discovered. Each entry names the themes it covers, which lets you build a
-subset while iterating: `build_map(only=["zones", "metro"])`.
-"""
+"""Assembling the whole map."""
 
 from .render.builder import MapBuilder
 from .render.layers import amenities, bike, bus, environment, ferry, metro, parking, zones
 
-# (name, function). Order sets both draw order and menu order.
 STEPS = [
     ("zones", zones.add),
     ("lakes", environment.add_lakes),
@@ -34,21 +28,7 @@ STEP_NAMES = [name for name, _ in STEPS]
 
 def build_map(only=None, data=None, verbose=True, center=None, zoom=None,
               show_all=False):
-    """
-    Build the map and return the MapBuilder.
-
-    Args:
-        only: subset of STEP_NAMES to include. None builds everything.
-        data: an existing MapData, to reuse already-loaded layers.
-        verbose: print progress as each layer is added.
-        center: (lat, lon) to open on. Defaults to the city centre.
-        zoom: opening zoom. Detail layers need 13-18 to be visible.
-        show_all: switch every parent layer on. Use for previews, where
-            a subset would otherwise render as an empty map.
-
-    Returns:
-        MapBuilder — use `.map` for the Folium map, `.save()` to write HTML.
-    """
+    """Build the map and return the MapBuilder."""
 
     if only is not None:
         unknown = set(only) - set(STEP_NAMES)

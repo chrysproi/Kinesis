@@ -1,32 +1,4 @@
-"""Rivers, water bodies and hydraulic structures.
-
-Three source files describing one network, merged and deduplicated:
-
-    water_lines.gpkg     3,116 waterway lines, EPSG:2100
-    water_polygons.gpkg 13,150 water bodies, EPSG:2100
-    water.gpkg           3,810 mixed geometry, EPSG:4326
-
-The third overlaps the first two by 94%, so it is merged on OSM id
-rather than concatenated. What it uniquely adds is worth having: 82
-hydraulic structures as points — weirs, dams, waterfalls, lock gates —
-which a line layer cannot represent, plus about 40 waterway lines the
-other files miss.
-
-`natural=coastline` is dropped. The 90 segments of it are real, but the
-basemap already draws the shoreline, and a blue line laid over it reads
-as a river running along the beach.
-
-Rivers and canals are NOT clipped to the study area; everything else is.
-A river's course is continuous and does not begin at an administrative
-line — clipping cut the major waterways from 909 km to 424 km, severing
-the Axios, Gallikos, Loudias and Anthemountas mid-course so that each
-appeared to start from nothing at the border. Ferry routes already carry
-this exception for the same reason.
-
-Minor waterways are clipped, because there the argument reverses: they
-lose only 4% to the clip (1,914 km to 1,836 km), and an unclipped drain
-network would import the whole basin's field ditches for nothing.
-"""
+"""Rivers, water bodies and hydraulic structures."""
 
 import geopandas as gpd
 import pandas as pd
@@ -36,23 +8,12 @@ from .geometry import keep_columns, valid_geometries
 
 LINE_TYPES = ["LineString", "MultiLineString"]
 POLYGON_TYPES = ["Polygon", "MultiPolygon"]
-
-# Metres. Lines and water bodies, so generous: nobody measures a stream
-# bank off this map.
 SIMPLIFY = 5
-
 LINE_COLUMNS = ["waterway"]
 POLYGON_COLUMNS = ["fclass"]
 POINT_COLUMNS = ["waterway"]
-
 OPTIONAL = ("name", "name:el", "name:en")
-
-# Drawn by the basemap already
 DROP_NATURAL = {"coastline"}
-
-# Waterways whose course is regional, and so not clipped to the study
-# area. Kept here rather than in classify.py because this is a decision
-# about extent, not about symbology.
 UNCLIPPED_WATERWAYS = {"river", "canal"}
 
 
@@ -105,7 +66,6 @@ def prepare_water(boundary, raw=None, processed=None, verbose=True):
 
     results = {}
 
-    # ---- lines, split by whether their course is regional
     fresh_lines = valid_geometries(fresh, LINE_TYPES)
     merged_lines = pd.concat([
         keep_columns(lines, LINE_COLUMNS, OPTIONAL),
@@ -130,7 +90,6 @@ def prepare_water(boundary, raw=None, processed=None, verbose=True):
         processed, "water_lines", verbose
     )
 
-    # ---- water bodies
     fresh_polygons = valid_geometries(fresh, POLYGON_TYPES)
     merged_polygons = pd.concat([
         keep_columns(polygons, POLYGON_COLUMNS, OPTIONAL),
@@ -141,7 +100,6 @@ def prepare_water(boundary, raw=None, processed=None, verbose=True):
         None, processed, "water_polygons", verbose
     )
 
-    # ---- structures, which only the third file carries
     points = valid_geometries(fresh, ["Point"])
     results["water_points"] = _save(
         _prepare(keep_columns(points, POINT_COLUMNS, OPTIONAL),

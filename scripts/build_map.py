@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """Build the interactive map and write it to outputs/.
 
     python scripts/build_map.py

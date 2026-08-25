@@ -1,24 +1,4 @@
-"""The pedestrian network, as a routable graph.
-
-Not a display layer. Its whole purpose is to answer distance questions
-along the ways people can actually walk, rather than as the crow flies —
-which on this network overstates reach by about a factor of three.
-
-Two analyses are built on it:
-
-* `bus_metro_integration` — which bus stops, and how many distinct bus
-  lines, are within a short walk of each Metro station.
-* `walking_catchment` — the area actually reachable on foot from each
-  station in 5 and 10 minutes.
-
-Both are ordinary graph problems once the network is *noded*, which is
-the step that matters. The sources are exported one file per highway
-type, so a footway meeting a residential street shares an interior
-vertex rather than an endpoint: 72% of raw endpoints have degree 1, and a
-graph built straight from them barely connects. `unary_union` splits
-every line at every crossing, after which 93% of nodes fall in a single
-component.
-"""
+"""The pedestrian network, as a routable graph."""
 
 from dataclasses import dataclass
 
@@ -31,9 +11,6 @@ from shapely.ops import unary_union
 
 from . import config
 
-# One file per highway type, per the brief's list. Ordered from the most
-# to the least pedestrian: informative only, since all of them are
-# walkable and the graph does not weight by comfort.
 WALK_SOURCES = [
     "walk_pedestrian",
     "walk_footway",
@@ -47,32 +24,11 @@ WALK_SOURCES = [
     "walk_trunk",
 ]
 
-# Coordinates are rounded to this many decimals before becoming node
-# keys. In EPSG:2100 that is centimetres — fine enough never to merge
-# two real junctions, coarse enough that float noise cannot split one.
 NODE_PRECISION = 2
-
-# A stop or station further than this from any walkable way is not
-# reachable on foot, and snapping it anyway would attach it to whatever
-# happened to be nearest. Bus stops run to 751 m from the network —
-# interurban poles on trunk roads — and silently routing those from the
-# wrong street is worse than reporting them as unreachable.
 MAX_SNAP_DISTANCE = 120
-
-# Walking speed, for turning minutes into metres. 4.8 km/h is the usual
-# planning figure for an average adult on level ground.
 WALK_SPEED_M_PER_MIN = 80
-
-# The two thresholds the brief asks for
 CATCHMENT_MINUTES = (5, 10)
-
-# How far a reachable edge spreads when catchment lines become a polygon.
-# Half a street block: enough to read as an area rather than a spider,
-# without claiming the backs of buildings are walkable.
 CATCHMENT_BUFFER = 20
-
-# Pulled back in after buffering, so the outline hugs the streets rather
-# than bulging past the last reachable node.
 CATCHMENT_EROSION = 8
 
 
@@ -81,10 +37,8 @@ class WalkNetwork:
     """A noded pedestrian graph plus the lookups routing needs."""
 
     graph: nx.Graph
-    # The largest connected component, which is what anything gets
-    # snapped to — see snap().
     component: set
-    edges: dict           # frozenset({node, node}) -> LineString
+    edges: dict
     _nodes: np.ndarray
     _tree: cKDTree
 
@@ -94,19 +48,7 @@ class WalkNetwork:
         return len(self.component) / self.graph.number_of_nodes()
 
     def snap(self, points):
-        """
-        Nearest graph node per point, restricted to the main component.
-
-        Restricted deliberately. Snapping to the nearest node full stop
-        put three Metro stations onto isolated fragments, where routing
-        reached three nodes instead of a neighbourhood. Staying on the
-        main component costs at most a few metres of offset and is the
-        difference between a result and a silent zero.
-
-        Returns:
-            (nodes, distances) with None and inf where the nearest
-            candidate is beyond MAX_SNAP_DISTANCE.
-        """
+        """Nearest graph node per point, restricted to the main component."""
 
         coordinates = np.c_[points.geometry.x.values, points.geometry.y.values]
         distances, indices = self._tree.query(coordinates)
@@ -131,12 +73,7 @@ def _key(x, y):
 
 
 def build(raw=None, sources=None, verbose=True):
-    """
-    Read every walkable source, node it, and return the graph.
-
-    Takes a few seconds and holds ~60k nodes, so callers building both
-    analyses should build once and pass it along.
-    """
+    """Read every walkable source, node it, and return the graph."""
 
     raw = raw or config.RAW
     sources = sources or WALK_SOURCES
@@ -160,8 +97,6 @@ def build(raw=None, sources=None, verbose=True):
         pd.concat(parts, ignore_index=True), crs=f"EPSG:{config.SOURCE_CRS}"
     )
 
-    # The step the whole module depends on: split every line at every
-    # crossing, so a footway meeting a street becomes a junction.
     noded = unary_union(combined.geometry.values)
     segments = list(getattr(noded, "geoms", [noded]))
 
@@ -197,11 +132,6 @@ def build(raw=None, sources=None, verbose=True):
     return network
 
 
-# --------------------------------------------------
-# Bus-Metro integration
-# --------------------------------------------------
-
-
 def _lines_of(value):
     """The distinct bus lines in a comma-separated LINES field."""
     if value is None or (isinstance(value, float) and np.isnan(value)):
@@ -212,21 +142,7 @@ def _lines_of(value):
 def bus_metro_integration(stations, stops, network=None, metres=300,
                           name_column=None, lines_column="lines_ejyp",
                           verbose=True):
-    """
-    Bus stops and distinct bus lines within a short walk of each station.
-
-    Args:
-        stations / stops: point GeoDataFrames, any CRS.
-        network: a built WalkNetwork. Built here if omitted.
-        metres: walking-distance threshold along the network.
-        name_column: station name column; guessed if omitted.
-        lines_column: the stops' comma-separated line list.
-
-    Returns:
-        A GeoDataFrame of stations with METRO_NAME, BUS_STOPS_NEAR,
-        BUS_LINES_NEAR and BUS_LINES — the deduplicated line list, which
-        is what makes the count auditable.
-    """
+    """Bus stops and distinct bus lines within a short walk of each station."""
 
     network = network or build(verbose=verbose)
 
@@ -238,8 +154,6 @@ def bus_metro_integration(stations, stops, network=None, metres=300,
     station_nodes, _ = network.snap(stations)
     stop_nodes, stop_distances = network.snap(stops)
 
-    # Stops indexed by the node they snapped to, so a lookup is O(1) per
-    # reachable node instead of a scan per station
     stops_at = {}
     for index, node in enumerate(stop_nodes):
         if node is not None:
@@ -268,7 +182,6 @@ def bus_metro_integration(stations, stops, network=None, metres=300,
             "METRO_NAME": station.get(name_column),
             "BUS_STOPS_NEAR": len(found),
             "BUS_LINES_NEAR": len(lines),
-            # Sorted so the column is stable between runs
             "BUS_LINES": ",".join(sorted(lines)),
             "walk_threshold_m": metres,
             "geometry": station.geometry,
@@ -277,24 +190,9 @@ def bus_metro_integration(stations, stops, network=None, metres=300,
     return gpd.GeoDataFrame(rows, geometry="geometry", crs=stations.crs)
 
 
-# --------------------------------------------------
-# Walking catchment
-# --------------------------------------------------
-
-
 def walking_catchment(stations, network=None, minutes=CATCHMENT_MINUTES,
                       name_column=None, verbose=True):
-    """
-    The area actually reachable on foot from each station.
-
-    One row per station per threshold, so the result is tidy and drops
-    straight into a GeoPackage or a GeoJSON layer.
-
-    Built by buffering the reachable *edges* rather than hulling the
-    reachable nodes: a convex hull would claim everything between two
-    streets, including the blocks in between, which is exactly the
-    overstatement using the network was meant to avoid.
-    """
+    """The area actually reachable on foot from each station."""
 
     network = network or build(verbose=verbose)
 
@@ -344,11 +242,6 @@ def walking_catchment(stations, network=None, minutes=CATCHMENT_MINUTES,
                   f"{span * WALK_SPEED_M_PER_MIN:.0f} m circle")
 
     return catchments
-
-
-# --------------------------------------------------
-# Shared helpers
-# --------------------------------------------------
 
 
 def _as_points(gdf, network):

@@ -14,7 +14,6 @@ export interface View {
   lon: number;
 }
 
-// Opens at the floor zoom, where the study area fills the view
 const DEFAULT_VIEW: View = {
   zoom: MAP_CONFIG.minZoom,
   lat: MAP_CONFIG.center[1],
@@ -23,33 +22,11 @@ const DEFAULT_VIEW: View = {
 
 const KNOWN = new Set(TOGGLE_LAYERS.map((layer) => layer.id));
 
-/**
- * What is on before the URL says anything.
- *
- * The hash carries the difference from this rather than the whole set.
- * Writing every active id put 24 layer names in the address bar for a
- * view one click from the default — 400 characters, past what several
- * chat clients link without truncating, and unreadable as a share.
- *
- * Pinned layers are left out entirely: they have no switch, showOnly
- * forces them on regardless, so naming them says nothing.
- */
 const DEFAULT_ON = TOGGLE_LAYERS.filter(
   (layer) => layer.show && !PINNED_LAYERS.includes(layer.id),
 ).map((layer) => layer.id);
 
-/**
- * The defaults *at a given zoom*, which is not the same list everywhere:
- * an auto-hiding layer is on by default at the overview and off by
- * default below it.
- *
- * Zoom has to enter into this or the deep-link case cannot be written
- * down at all. Held against the flat defaults, "zones on at z14" encodes
- * to nothing — zones is a default — so the first hash rewrite dropped
- * the one fact the link existed to carry, and the layer closed itself on
- * arrival. Against the zoom-aware baseline the same state encodes to
- * `+zones`, which survives every rewrite.
- */
+/** An auto-hiding layer is a default at the overview and not below it. */
 const defaultsAt = (zoom: number) =>
   DEFAULT_ON.filter((id) => !(id in AUTO_HIDE) || zoom <= AUTO_HIDE[id]);
 
@@ -67,14 +44,7 @@ function encodeLayers(active: string[], zoom: number) {
   ].join(",");
 }
 
-/**
- * The active set a layer segment describes.
- *
- * Two forms are read. A signed list is the difference from the defaults,
- * which is what this writes. An unsigned list is the absolute set, which
- * is what it used to write — links already shared in that form keep
- * resolving to the same map.
- */
+/** Signed tokens are a difference from the defaults; unsigned is the whole set. */
 function decodeLayers(segment: string, zoom: number): string[] | null {
   const tokens = segment.split(",").filter(Boolean);
   if (tokens.length === 0) return null;
@@ -93,21 +63,13 @@ function decodeLayers(segment: string, zoom: number): string[] | null {
     else active.add(id);
   }
 
-  // Deliberately not null when empty: "everything off" is a state a
-  // reader can reach and share, and falling back to the defaults there
-  // would switch six layers back on behind their back.
   return [...active];
 }
 
-/**
- * Reads the initial view and active layers out of the URL hash, in the
- * form #zoom/lat/lon/-off,+on. Sharing the address bar shares the exact
- * view — the single most useful thing a map app can do.
- */
+/** Reads #zoom/lat/lon/-off,+on. */
 export function readHash(): {
   view: View;
   layers: string[] | null;
-  /** False on a bare URL, so the map can fit the study area instead. */
   fromHash: boolean;
 } {
   const raw = window.location.hash.replace(/^#/, "");
@@ -127,7 +89,6 @@ export function readHash(): {
   };
 }
 
-/** Keeps the hash in step with the map view and active layers. */
 export function useHashState(view: View | null) {
   const visible = useMapStore((state) => state.visible);
   const frame = useRef<number>(0);

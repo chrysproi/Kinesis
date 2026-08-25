@@ -7,17 +7,6 @@ interface SidebarProps {
   onFlyToZoom: (zoom: number) => void;
 }
 
-/**
- * Layer menu and legend in one.
- *
- * A plain list of switches: the marks themselves live in the active-layer
- * chips above and in the legend, so repeating them on every row was three
- * copies of the same information on one screen.
- *
- * A network and its nodes stay separately switchable — they answer
- * different questions — and each row carries its full name, so no mode
- * heading is needed to disambiguate "Lanes" from "Line".
- */
 export default function Sidebar({ onFlyToZoom }: SidebarProps) {
   return (
     <nav
@@ -26,13 +15,6 @@ export default function Sidebar({ onFlyToZoom }: SidebarProps) {
                  border border-line bg-surface"
     >
       <header className="flex shrink-0 items-center gap-2.5 px-6 pb-3 pt-4">
-        {/* The same runner the map draws for a mobility hub, so the mark
-            in the header and the mark on the map are one thing. Framed
-            in the brand blue: the glyph alone had no edge, and on a
-            tinted panel it read as an illustration rather than a mark.
-
-            A square frame around a wider-than-tall glyph, so the badge
-            stays a badge. Decorative, hence the empty alt. */}
         <span
           aria-hidden
           className="grid size-9 shrink-0 place-items-center rounded-lg
@@ -47,8 +29,6 @@ export default function Sidebar({ onFlyToZoom }: SidebarProps) {
         </span>
 
         <div className="min-w-0">
-          {/* Letterspaced and in the brand blue: a three-word name set
-              tight reads as a label, set open it reads as a wordmark. */}
           <h1 className="text-[0.875rem] font-semibold tracking-[0.03em]
                          text-brand [word-spacing:0.12em]">
             Kinesis City Hub
@@ -61,9 +41,6 @@ export default function Sidebar({ onFlyToZoom }: SidebarProps) {
         <ActiveLayers />
       </div>
 
-      {/* The only scrolling region: the title and active layers stay put.
-          No top rule — the tinted panel above already closes the section,
-          and two hairlines that close together read as a heavy seam. */}
       <div className="flex-1 space-y-5 overflow-y-auto px-6 pb-4 pt-1">
         {(Object.keys(THEMES) as Theme[]).map((theme) => {
           const entries = MENU[theme];
@@ -87,8 +64,6 @@ export default function Sidebar({ onFlyToZoom }: SidebarProps) {
 }
 
 function Entry({ entry, onFlyToZoom }: { entry: MenuEntry } & SidebarProps) {
-  // Flat rows. The mode headings and their connecting rule cost two lines
-  // of height per group and the full label carries the same information.
   return (
     <>
       {entry.layers.map((layer) => (
@@ -103,11 +78,8 @@ function Row({ layer, onFlyToZoom }: { layer: MenuLayer } & SidebarProps) {
   const zoom = useMapStore((state) => state.zoom);
   const setMany = useMapStore((state) => state.setMany);
 
-  // One switch may control a mode's network and its nodes together
   const on = layer.ids.every((id) => visible[id]);
 
-  // A zoom-gated layer draws nothing until its threshold, which otherwise
-  // reads as a switch that does not work.
   const tooFarOut = layer.minZoom !== null && zoom < layer.minZoom;
   const dimmed = tooFarOut && on;
 

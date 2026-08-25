@@ -1,8 +1,4 @@
-"""Bike lanes, parking and rental.
-
-Primary lanes show whenever the layer is on. Secondary lanes and the
-clustered bike points are street-level detail, gated by the registry.
-"""
+"""Bike lanes, parking and rental."""
 
 import folium
 from folium.plugins import MarkerCluster

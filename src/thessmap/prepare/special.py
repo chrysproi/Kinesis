@@ -1,8 +1,4 @@
-"""Layers that derive columns or merge several sources.
-
-Bus stops gain the service-intensity fields the map styles by, taxi
-merges two files, and trees gain a height class.
-"""
+"""Layers that derive columns or merge several sources."""
 
 import geopandas as gpd
 
@@ -36,10 +32,7 @@ def _save(gdf, processed, name, verbose=True):
 
 
 def prepare_bus_stops(boundary, raw=None, processed=None, verbose=True):
-    """
-    Derives the fields the map's service-intensity symbology depends on:
-    a functional category, a line count and a service band.
-    """
+    """Derives the fields the map's service-intensity symbology depends on."""
 
     raw = raw or config.RAW
     processed = processed or config.PROCESSED
@@ -67,10 +60,7 @@ def prepare_bus_stops(boundary, raw=None, processed=None, verbose=True):
 
 
 def prepare_taxi_spots(boundary, raw=None, processed=None, verbose=True):
-    """
-    Two source files merged. Geometry is mixed, so everything becomes a
-    representative point; a `source_layer` column records the origin.
-    """
+    """Two source files merged."""
 
     raw = raw or config.RAW
     processed = processed or config.PROCESSED
@@ -102,10 +92,7 @@ def prepare_taxi_spots(boundary, raw=None, processed=None, verbose=True):
 
 
 def prepare_trees(boundary, raw=None, processed=None, verbose=True):
-    """
-    Classifies trees into height bands. The map colours and sizes each
-    band, and gates the whole layer to zoom 18 because of its density.
-    """
+    """Classifies trees into height bands."""
 
     raw = raw or config.RAW
     processed = processed or config.PROCESSED
@@ -136,19 +123,7 @@ def prepare_trees(boundary, raw=None, processed=None, verbose=True):
 
 
 def prepare_parking_points(boundary, raw=None, processed=None, verbose=True):
-    """
-    One point per parking place, for the hint dot and the P symbol.
-
-    Parking arrives as 715 MultiPolygons. A `circle` layer over polygon
-    geometry draws a circle at every vertex, so the hint tier was tracing
-    the outline of each car park in dots instead of marking it once —
-    which is what the fill is for.
-
-    The symbol layer moves onto these points too. MapLibre would place it
-    at each polygon's pole of inaccessibility on its own, which is
-    usually fine, but sharing one geometry guarantees the dot and the P
-    land in the same place across the zoom handover.
-    """
+    """One point per parking place, for the hint dot and the P symbol."""
 
     raw = raw or config.RAW
     processed = processed or config.PROCESSED
@@ -156,9 +131,6 @@ def prepare_parking_points(boundary, raw=None, processed=None, verbose=True):
     polygons = gpd.read_file(processed / "parking_places_web_4326.gpkg")
     points = to_symbol_points(polygons.to_crs(boundary.crs))
 
-    # The polygons keep every OSM tag for analysis; the points only need
-    # what the card shows. 69 columns over 715 features was 1 MB of
-    # exported GeoJSON to draw a dot.
     points = keep_columns(points, PARKING_POINT_COLUMNS, PARKING_POINT_OPTIONAL)
 
     if verbose:

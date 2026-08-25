@@ -1,21 +1,4 @@
-"""Public open space: green space, forest, playgrounds and squares.
-
-Parks, green space, recreational space, forest and playground areas are
-merged into ONE layer rather than kept apart. They are all the same
-thing to a reader — ground the city leaves open and planted — and five
-switches for one idea meant nobody ever saw the whole of it. The
-`green_subtype` column keeps the distinction for the popup and the
-legend, so nothing is lost but the switches.
-
-Squares stay separate: paved civic space is not planted, and colouring
-it with the parks would say it is.
-
-Playgrounds arrive twice, as 183 polygons and 137 nodes, and the two are
-complementary rather than duplicates: only 25 of the nodes fall inside a
-polygon, so 112 playgrounds are mapped as a point and nothing else. The
-areas join the green layer; the nodes stay as symbols, since a point has
-no area to merge.
-"""
+"""Public open space: green space, forest, playgrounds and squares."""
 
 import geopandas as gpd
 import pandas as pd
@@ -25,33 +8,23 @@ from .amenities import MIN_SYMBOL_DISTANCE, _finalise, _load_source
 from .geometry import keep_columns, valid_geometries
 
 POLYGON_TYPES = ["Polygon", "MultiPolygon"]
-
-# Metres. Park and square outlines follow kerbs, so this is finer than
-# the land-use tolerance.
 SIMPLIFY = 2
-
 PLAYGROUND_COLUMNS = ["playground_source"]
 PLAYGROUND_OPTIONAL = ("name", "name:el", "leisure", "operator", "access",
                        "opening_hours", "surface")
 
 GREEN_COLUMNS = ["green_subtype"]
 GREEN_OPTIONAL = ("name", "name:el", "leisure", "landuse", "access")
-
 SQUARE_COLUMNS = []
 SQUARE_OPTIONAL = ("name", "name:el", "place", "leisure", "amenity",
                    "landuse", "surface")
 
-# The file's own SUBCATEGORY is blank on 684 of 2,439 rows, and every one
-# of those is leisure=park — the PARK class the brief names but the
-# column never received. Derived rather than trusted.
 GREEN_SUBTYPES = {
     "GREEN_SPACE": "Green space",
     "RECREATIONAL_SPACE": "Recreational space",
     "PARK": "Park",
 }
 
-# Sources merged into the one green layer: file stem -> subtype, for the
-# two that carry no SUBCATEGORY of their own.
 MERGED_GREEN = {
     "forest": "Forest",
     "playground_polygons": "Playground",
@@ -79,10 +52,6 @@ def prepare_open_spaces(boundary, raw=None, processed=None, verbose=True):
 
     results = {}
 
-    # ---------------- playground symbols
-    # The areas go into the green layer below; the nodes have no area to
-    # merge, so they stay as symbols and identify what kind of green it
-    # is at close range.
     polygons = _load_source(raw / "playground_polygons.gpkg", boundary)
     polygons = valid_geometries(polygons, POLYGON_TYPES)
     polygons["playground_source"] = "polygon"
@@ -108,7 +77,6 @@ def prepare_open_spaces(boundary, raw=None, processed=None, verbose=True):
         protect_column="symbol_origin", verbose=verbose,
     )
 
-    # ---------------- one green layer from three sources
     green = _load_source(raw / "green_recreational.gpkg", boundary)
     green = valid_geometries(green, POLYGON_TYPES)
     green["green_subtype"] = green.apply(_classify_green, axis=1)
@@ -135,7 +103,6 @@ def prepare_open_spaces(boundary, raw=None, processed=None, verbose=True):
         "green_spaces_web_4326", verbose=verbose,
     )
 
-    # ---------------- squares
     squares = _load_source(raw / "squares.gpkg", boundary)
     squares = valid_geometries(squares, POLYGON_TYPES)
 

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """Generate the web app's data and layer definitions.
 
     python scripts/export_web_data.py
@@ -50,8 +49,6 @@ def main(argv=None):
         rasterexport.export_population_raster(
             config.RASTERS / f"{stem}.tif",
             destination / png,
-            # The same classes as the municipal choropleth, so a cell can
-            # be compared against its municipality's average
             breaks=webexport.density_breaks(),
         )
 

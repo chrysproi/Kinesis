@@ -1,9 +1,4 @@
-"""Loading the layers the map draws from.
-
-`MapData` reads lazily and caches, so building a subset of the map does
-not pay for layers it never draws — useful when iterating on one theme
-against 400 MB of buildings.
-"""
+"""Loading the layers the map draws from."""
 
 from functools import cached_property
 
@@ -16,25 +11,16 @@ class MapData:
     """Lazy, cached access to source and web-ready layers."""
 
     def __init__(self, raw=None, processed=None, bbox=None, simplify=None):
-        """
-        Args:
-            bbox: (min_lon, min_lat, max_lon, max_lat) in EPSG:4326. Layers
-                are cut to it on load. Use for close-up previews, where
-                region-wide data would be megabytes of off-screen geometry.
-            simplify: tolerance in degrees applied to web-CRS geometry.
-                Roughly 0.0005 ~ 50 m. For previews only; the saved map
-                should use the layers as prepared.
-        """
+        """."""
 
         self.raw_dir = raw or config.RAW
         self.processed_dir = processed or config.PROCESSED
         self.bbox = bbox
         self.simplify = simplify
 
-    # ---------------------------------------------- loading
 
     def _trim(self, gdf):
-        """Apply the bbox and simplification, if any. Both are no-ops by default."""
+        """Apply the bbox and simplification, if any."""
 
         if self.bbox is not None:
             min_lon, min_lat, max_lon, max_lat = self.bbox
@@ -65,7 +51,6 @@ class MapData:
             )
         return self._trim(gpd.read_file(path))
 
-    # ---------------------------------------------- study area
 
     @cached_property
     def units(self):
@@ -81,18 +66,10 @@ class MapData:
         """All zones dissolved into one polygon. The spine of the project."""
         return self.units.dissolve()
 
-    # ---------------------------------------------- raw layers
 
     @cached_property
     def selected_lakes(self):
-        """
-        The three named lakes, deduplicated.
-
-        The source file carries Volvi three times over as identical
-        69.5 km2 polygons. Stacked at 0.8 fill opacity they composited to
-        nearly opaque, so the lake read darker than Koroneia beside it,
-        and Folium drew its label three times on the same spot.
-        """
+        """The three named lakes, deduplicated."""
         lakes = self.raw("selected_lakes").to_crs(epsg=config.WEB_CRS)
 
         before = len(lakes)
@@ -119,7 +96,6 @@ class MapData:
         """Rivers, streams, canals and drains, carrying `waterway`."""
         return self.processed("water_lines")
 
-    # ---------------------------------------------- processed layers
 
     @cached_property
     def buildings(self):
@@ -166,13 +142,7 @@ class MapData:
 
     @cached_property
     def bike_points(self):
-        """
-        Parking stands and rental stations as one layer, tagged by kind.
-
-        Combined because they cluster together: 71 points that answer the
-        same question — where can I leave or take a bike — and clustering
-        them separately would put two badges on the same street corner.
-        """
+        """Parking stands and rental stations as one layer, tagged by kind."""
         import pandas as pd
 
         parts = []
@@ -212,12 +182,7 @@ class MapData:
 
     @cached_property
     def municipalities(self):
-        """
-        The 14 municipalities carrying the ELSTAT 2021 indicators.
-
-        Coarser than `units` (45 municipal units) but the same footprint,
-        and the only layer with population attached.
-        """
+        """The 14 municipalities carrying the ELSTAT 2021 indicators."""
         return self.processed("municipalities")
 
     @cached_property
@@ -288,26 +253,7 @@ class MapData:
         """222 scored candidate hub sites, in three tiers."""
         return self.processed("hub_network")
 
-    # ---------------------------------------------- helpers
-
-    def clip_to_study_area(self, layer, target_crs=config.WEB_CRS):
-        """Clip to the study boundary and reproject for web display."""
-
-        boundary = self.study_boundary
-
-        if layer.crs != boundary.crs:
-            layer = layer.to_crs(boundary.crs)
-
-        return gpd.clip(layer, boundary).to_crs(epsg=target_crs)
 
     def zone_outline(self, zone_name):
         """One dissolved outline for a single zone."""
         return self.units_4326[self.units_4326["zone"] == zone_name].dissolve()
-
-    def summary(self):
-        """Feature counts for whatever has been loaded so far."""
-        return {
-            name: len(value)
-            for name, value in vars(self).items()
-            if hasattr(value, "__len__") and not name.endswith("_dir")
-        }

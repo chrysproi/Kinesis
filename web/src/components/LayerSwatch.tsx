@@ -5,11 +5,6 @@ import { lucideFor } from "./lucide";
 
 interface LayerSwatchProps {
   swatch: Swatch;
-  /**
-   * Smaller mark, for the active-layer chips. The default 18 px box was
-   * set for a standalone row; inside a 24 px chip it was the largest
-   * thing in it and the chips read as swatches with a label attached.
-   */
   compact?: boolean;
 }
 
@@ -19,7 +14,6 @@ export default function LayerSwatch({ swatch, compact }: LayerSwatchProps) {
   const glyph = compact ? 11 : 14;
 
   if (swatch.kind === "point") {
-    // Drawn rather than imported: see BUILT in map/icons.ts
     if (swatch.icon?.startsWith("stop-")) {
       return (
         <span aria-hidden className={`grid ${box} shrink-0 place-items-center`}>
@@ -30,8 +24,6 @@ export default function LayerSwatch({ swatch, compact }: LayerSwatchProps) {
       );
     }
 
-    // Composed marks are drawn, not imported: see BUILT in map/icons.ts.
-    // The menu shows the bicycle alone, which is enough at 14 px.
     if (swatch.icon?.startsWith("bike-")) {
       return (
         <span aria-hidden className={`grid ${box} shrink-0 place-items-center`}>

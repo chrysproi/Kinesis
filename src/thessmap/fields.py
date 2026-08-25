@@ -1,11 +1,5 @@
-"""Attribute access helpers.
+"""Attribute access helpers."""
 
-Source layers come from different origins — OpenStreetMap, national
-datasets, manual digitising — so the column holding a feature's name is
-not consistent. These helpers paper over that.
-"""
-
-# Name candidates, ordered from most to least specific
 NAME_FIELDS = [
     "name", "Name", "NAME",
     "name_el", "name:el", "name_en",

@@ -1,8 +1,4 @@
-"""The Urban / Metropolitan / Regional frame.
-
-The spine of the project: these units dissolve into the study boundary
-that every other layer is clipped to.
-"""
+"""The Urban / Metropolitan / Regional frame."""
 
 import folium
 
@@ -36,7 +32,6 @@ def add(builder):
         ),
     ).add_to(group)
 
-    # Dissolved outline per zone, heavier as the zone narrows
     for zone_name, weight in palette.ZONE_OUTLINE_WEIGHTS.items():
         folium.GeoJson(
             data.zone_outline(zone_name),
@@ -56,12 +51,7 @@ def add(builder):
 
 
 def add_hover_layer(builder):
-    """
-    Invisible layer on top of everything, so area identification keeps
-    working once other layers are switched on.
-
-    Added after the themed layers, which is why it is separate.
-    """
+    """Invisible layer on top of everything, so area identification keeps working once other layers are switched on."""
 
     folium.GeoJson(
         builder.data.units_4326,

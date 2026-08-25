@@ -1,14 +1,4 @@
-"""One pipeline for turning a source layer into a web-ready one.
-
-The original notebook defined `prepare_web_layer` and then bypassed it
-seven times, hand-rolling the same nine steps for metro, ferry, parking,
-taxi and trees. Those variants differed in only three ways, which are now
-the three optional arguments below:
-
-    set_crs_if_missing   some sources carry no CRS
-    explode              some arrive as multipart geometry
-    geom_types           some need filtering to one geometry family
-"""
+"""One pipeline for turning a source layer into a web-ready one."""
 
 import geopandas as gpd
 
@@ -30,27 +20,7 @@ def prepare_web_layer(
     thin_distance=0,
     verbose=True,
 ):
-    """
-    Clip, simplify and reproject a layer for web display.
-
-    Args:
-        input_path: source GeoPackage.
-        output_path: destination GeoPackage.
-        boundary: study boundary to clip against, in the source CRS.
-        simplify_tolerance: metres. 0 disables simplification.
-        columns: "all" keeps everything, a list keeps those plus geometry,
-            None keeps geometry only.
-        optional_columns: kept when present, ignored when absent.
-        geom_types: e.g. ["Point"] to drop anything else.
-        explode: split multipart geometry into single parts first.
-        set_crs_if_missing: assume EPSG:2100 when the source has no CRS.
-        clip: set False for layers already inside the study area.
-        thin_distance: metres. Collapses points describing one place, e.g.
-            a harbour listed once per berth.
-
-    Returns:
-        The saved GeoDataFrame, in EPSG:4326.
-    """
+    """Clip, simplify and reproject a layer for web display."""
 
     def log(*args):
         if verbose:
@@ -91,7 +61,6 @@ def prepare_web_layer(
         layer = layer[["geometry"]].copy()
 
     if simplify_tolerance:
-        # Tolerance is in metres because we are still in the source CRS
         layer["geometry"] = layer.geometry.simplify(
             tolerance=simplify_tolerance, preserve_topology=True
         )

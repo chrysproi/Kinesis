@@ -15,17 +15,7 @@ def valid_geometries(gdf, geom_types=None):
 
 
 def to_symbol_points(gdf):
-    """
-    Reduce mixed geometry to one representative point per feature.
-
-    Point            -> unchanged
-    Polygon          -> representative_point(), guaranteed inside
-    LineString       -> midpoint
-
-    Used for education and culture, where a school may arrive as a
-    building footprint from one source and a node from another, but the
-    map needs a single symbol either way.
-    """
+    """Reduce mixed geometry to one representative point per feature."""
 
     gdf = valid_geometries(gdf)
 
@@ -47,21 +37,11 @@ def to_symbol_points(gdf):
 
 
 def thin_close_points(gdf, min_distance, protect_column=None, protect_value=None):
-    """
-    Keep one point wherever several fall within `min_distance`.
-
-    `protect_column`/`protect_value` mark points that are always kept and
-    that thin the others around them — used so polygon-derived culture
-    symbols survive while dense node symbols get thinned.
-
-    Distance is in CRS units, so run this before reprojecting to 4326
-    while still in metres.
-    """
+    """Keep one point wherever several fall within `min_distance`."""
 
     gdf = gdf.copy().reset_index(drop=True)
 
     if protect_column is not None:
-        # Built after reset_index, so the mask shares the frame's index
         protect = gdf[protect_column] == protect_value
         protected = gdf[protect]
         candidates = gdf[~protect]
@@ -69,10 +49,6 @@ def thin_close_points(gdf, min_distance, protect_column=None, protect_value=None
         protected = gdf.iloc[0:0]
         candidates = gdf
 
-    # Protected points still have to be thinned against *each other*.
-    # Overlapping sources describe the same landmark more than once — the
-    # White Tower appeared twice at the identical coordinate — and keeping
-    # every protected point stacks those symbols permanently.
     kept_geometries = []
     kept_indices = []
 
@@ -104,11 +80,7 @@ def thin_close_points(gdf, min_distance, protect_column=None, protect_value=None
 
 
 def keep_columns(gdf, required, optional=()):
-    """
-    Narrow to `required` plus whichever `optional` columns exist.
-
-    Geometry is always last, matching how the source notebooks wrote it.
-    """
+    """Narrow to `required` plus whichever `optional` columns exist."""
 
     columns = [c for c in required if c in gdf.columns and c != "geometry"]
 

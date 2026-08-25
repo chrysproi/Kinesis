@@ -1,10 +1,4 @@
-"""Bus lanes and bus stops.
-
-Bus stops carry the map's clearest cartographic idea: the outer circle is
-sized by how many lines serve the stop, so network hierarchy reads at a
-glance. Detail arrives in three stages as you zoom — plain dot, service
-circle, then station-type symbol.
-"""
+"""Bus lanes and bus stops."""
 
 import folium
 
@@ -30,9 +24,7 @@ def outer_radius(line_count):
     return palette.BUS_STOP_MAX_RADIUS
 
 
-# Symbol bodies, drawn inside a 20x20 viewBox
 _COLOR = palette.BUS_STOP_SYMBOL_COLOR
-
 _ASTERISK_IN_CIRCLE = f"""
     <circle cx="10" cy="10" r="7"
             fill="white" stroke="{_COLOR}" stroke-width="2"/>

@@ -96,11 +96,7 @@ def add_buildings(builder):
 
 
 def add_trees(builder):
-    """
-    One GeoJson layer per height class.
-
-    The densest layer on the map, so the registry gates it to zoom 18.
-    """
+    """One GeoJson layer per height class."""
 
     trees = builder.data.trees
 

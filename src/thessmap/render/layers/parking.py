@@ -1,8 +1,4 @@
-"""Parking places and taxi ranks.
-
-Both are kerbside detail, so the registry holds their symbols back to
-zoom 17. Parking polygons appear earlier, at 15.
-"""
+"""Parking places and taxi ranks."""
 
 import folium
 
@@ -60,7 +56,6 @@ def add_parking(builder):
         },
     ).add_to(polygon_group)
 
-    # One symbol per polygon, at a point guaranteed to sit inside it
     for _row, point in polygons(builder.data.parking_places):
         symbol_marker(
             location=[point.y, point.x],

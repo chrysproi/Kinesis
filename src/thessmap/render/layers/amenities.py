@@ -1,9 +1,4 @@
-"""Education and culture.
-
-Both arrive as a mix of polygons and points from several sources, so the
-preparation step derives one symbol point per feature. Polygons show from
-zoom 15, symbols from 17.
-"""
+"""Education and culture."""
 
 import folium
 
@@ -141,7 +136,6 @@ def add_culture(builder):
         )
 
     if unknown_subtypes:
-        # Reported once rather than per feature, as the notebook did
         print(f"  culture subtypes without an icon: {sorted(unknown_subtypes)}")
 
     parent.add_to(builder.map)

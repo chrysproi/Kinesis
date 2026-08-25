@@ -1,17 +1,4 @@
-"""The pedestrian network as a display layer.
-
-Four of the ten walkable sources, merged into one layer drawn as a
-dashed light grey line: footway, pedestrian street, path and hiking
-route. That is what the source files were styled as in QGIS — they are
-named `*_dashed_lightgrey` — and it is the set the basemap does not
-already draw, since Positron renders a footway no differently from a
-driveway.
-
-The six road classes are deliberately not here. They are already on the
-basemap, so drawing them again added a second grey over the first and
-told the reader nothing. `walknet.py` still routes over all ten: people
-walk along residential streets whether or not the map re-draws them.
-"""
+"""The pedestrian network as a display layer."""
 
 import geopandas as gpd
 import pandas as pd
@@ -20,10 +7,6 @@ from .. import config
 from .geometry import valid_geometries
 
 LINE_TYPES = ["LineString", "MultiLineString"]
-
-# source stem -> class name, for the popup. All four draw identically;
-# the class is kept so a reader can tell a mapped footway from a hiking
-# route when they click one.
 WALK_CLASSES = {
     "walk_pedestrian": "Pedestrian street",
     "walk_footway": "Footway",
@@ -31,10 +14,7 @@ WALK_CLASSES = {
     "walk_hiking": "Hiking route",
 }
 
-# Metres. Lines only, so this is generous compared with the 2 m used on
-# transit routes — nobody measures a footway off this map.
 SIMPLIFY = 3
-
 WALK_COLUMNS = ["walk_class"]
 
 

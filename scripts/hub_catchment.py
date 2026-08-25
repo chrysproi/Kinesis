@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """How many residents live within walking distance of a location.
 
     python scripts/hub_catchment.py 22.9486 40.6262
@@ -17,7 +16,6 @@ import sys
 
 from thessmap import rasterexport
 
-# The ten-minute walk, and a shorter and longer bracket around it
 DEFAULT_RADII = (400, 800, 1500)
 
 
@@ -38,9 +36,6 @@ def main(argv=None):
     for radius in args.radius:
         result = rasterexport.hub_catchment((args.lon, args.lat), radius)
 
-        # Density over the populated cells rather than over the circle:
-        # a waterfront hub has half its circle in the sea, and dividing
-        # by the full disc would understate how dense its catchment is.
         land = result["cells"] * 0.01
         density = result["population"] / land if land else 0
 

@@ -1,13 +1,4 @@
-"""Zoom-driven layer visibility.
-
-The original notebook carried four MacroElement classes for this. Two
-were never instantiated at all, and a third was a strict subset of the
-fourth — so one class does the whole job.
-
-A rule shows its target group only while the parent group is switched on
-AND the current zoom sits inside [min_zoom, max_zoom). Either bound may
-be None, meaning unbounded on that side.
-"""
+"""Zoom-driven layer visibility."""
 
 from dataclasses import dataclass
 

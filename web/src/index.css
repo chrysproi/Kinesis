@@ -1,8 +1,3 @@
-/* Self-hosted so the app needs no third-party request and works offline.
-   Inter ships per-subset @font-face rules with unicode-range, so a browser
-   only fetches the Latin and Greek files this data needs.
-   Plex Mono is pinned to Latin: it has no Greek subset, which is why mono
-   is used for figures and codes only, never for place names. */
 @import "@fontsource-variable/geist";
 @import "@fontsource-variable/inter";
 @import "@fontsource/ibm-plex-mono/latin-400.css";
@@ -11,36 +6,22 @@
 @import "tailwindcss";
 
 @theme {
-  /* One step between neutral-100 and 200, for nested-group rules */
   --color-neutral-150: oklch(95% 0 none);
 
-  /* Three surfaces, one step apart: the ground behind the panels, the
-     sidebar, and the map. */
-  --color-ground: #f1f3f5;   /* subtle depth contrast */
-  --color-surface: #f8f9fa;  /* primary surface */
-  --color-line: #e9ecef;     /* architectural divider */
-  --color-accent: #007aff;   /* action blue, chrome only */
-  /* The runner's own blue, lifted from the logo artwork. Distinct from
-     --color-accent, which is for interactive chrome: this one is
-     identity, and the only place it appears is the wordmark and the
-     frame around the mark. */
+  --color-ground: #f1f3f5;
+  --color-surface: #f8f9fa;
+  --color-line: #e9ecef;
+  --color-accent: #007aff;
   --color-brand: #005dc1;
-  /* The runner's head. Used for the "on" state of a switch, which is the
-     one thing in the panel that means active rather than identity. */
   --color-brand-accent: #4ec5af;
   --color-accent-strong: #0060df;
   --color-switch-off: #dee2e6;
-  --color-meta: #6c757d;     /* muted grey for metadata hierarchy */
+  --color-meta: #6c757d;
 
-  /* Geist for the interface: geometric, precise, and every label in the
-     chrome is Latin. Inter sits behind it because Geist ships no Greek
-     subset — Λευκός Πύργος, Λίμνη Βόλβη and the stop names would
-     otherwise drop to a system font mid-interface. Both are neutral
-     grotesques, so the fallback is not visible as a change of voice. */
+  /* Inter backs Geist, which ships no Greek subset. */
   --font-sans: "Geist Variable", "Geist", "Inter Variable", ui-sans-serif,
     system-ui, sans-serif;
 
-  /* Plex Mono carries the technical-drawing tone for figures and codes. */
   --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
 }
 
@@ -54,17 +35,13 @@ body,
 body {
   font-family: var(--font-sans);
   background: var(--color-ground);
-  /* cv05: single-storey l; ss03: disambiguated punctuation. Both help at
-     the small sizes a dense map interface runs at. */
   font-feature-settings: "cv05" 1, "ss03" 1;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: var(--color-neutral-900);
 }
 
-/* MapLibre ships its own font stack for controls, popups, the scale bar
-   and attribution. Without this the map chrome silently opts out of the
-   app's typeface. */
+/* MapLibre ships its own font stack for its chrome. */
 .maplibregl-map,
 .maplibregl-ctrl,
 .maplibregl-ctrl-attrib,
@@ -83,9 +60,6 @@ body {
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.12) !important;
 }
 
-/* Legend block titles: the sidebar's register, one step smaller */
-/* The theme eyebrow, matching the sidebar's section headings so the two
-   panels read as one grouping scheme. */
 .legend-theme {
   font-size: 10px;
   font-weight: 600;
@@ -94,9 +68,6 @@ body {
   color: var(--color-meta);
 }
 
-/* The block name below it. Sentence case and dark: with the theme above
-   it now carrying the uppercase grey, a second uppercase grey line left
-   the two headings weighing the same and the hierarchy unreadable. */
 .legend-title {
   margin-bottom: 3px;
   font-size: 11px;
@@ -105,7 +76,6 @@ body {
   color: var(--color-neutral-800, #262626);
 }
 
-/* Category headers: muted metadata, set apart by case and tracking */
 .sidebar-label {
   margin-bottom: 8px;
   font-size: 11px;
@@ -115,11 +85,7 @@ body {
   color: var(--color-meta);
 }
 
-/* --------------------------------------------------
-   Feature card
-   --------------------------------------------------
-   An annotation on a drawing, not a web tooltip: square-ish corners,
-   hairline rules, a letterspaced eyebrow, and figures in mono. */
+/* Feature card */
 
 .maplibregl-popup-content {
   padding: 0;
@@ -131,7 +97,6 @@ body {
   overflow: hidden;
 }
 
-/* Match the tip to the card's hairline border */
 .maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
   border-top-color: var(--color-neutral-200);
 }
@@ -168,7 +133,6 @@ body {
 }
 
 .tm-head {
-  /* Right padding clears the close button */
   padding: 0.75rem 2rem 0.6875rem 0.875rem;
 }
 
@@ -221,7 +185,6 @@ body {
   overflow-wrap: anywhere;
 }
 
-/* Figures, codes and route lists read better aligned and monospaced */
 .tm-value--mono {
   font-family: var(--font-mono);
   font-size: 0.7188rem;
@@ -236,7 +199,7 @@ body {
   color: var(--color-neutral-400);
 }
 
-/* Cluster badge: Folium's MarkerCluster bubble, as a DOM marker */
+/* Cluster badge */
 .tm-cluster {
   display: grid;
   place-items: center;

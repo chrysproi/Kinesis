@@ -1,14 +1,4 @@
-"""Buildings, classified by roof height.
-
-From `buildingsheight.gpkg` — the Greek national building dataset, 1.99
-million footprints nationwide with surveyed heights (flight date
-2025-06-12). Read with a bounding-box filter rather than in full: the
-file is 921 MB and the study area holds 192,645 of it.
-
-Not to be confused with `buildings.gpkg`, the Geofabrik OSM extract also
-in data/. That one carries no height at all — only osm_id, code, fclass,
-name, type — which is why the height ramp waited on this file.
-"""
+"""Buildings, classified by roof height."""
 
 import geopandas as gpd
 
@@ -16,24 +6,9 @@ from .. import config
 from .geometry import keep_columns, valid_geometries
 
 POLYGON_TYPES = ["Polygon", "MultiPolygon"]
-
-# Metres. Footprints are small — median 91 m2 — so this is deliberately
-# fine; anything coarser starts rounding off corners at z16 where the
-# layer is read one building at a time.
 SIMPLIFY = 0.5
-
 COLUMNS = ["ROOF_H"]
-
-# Only what the popup shows. The source also carries CEIL_H, PILOTI,
-# YPOGEIO, ADDRESS and the elevations, but at 192,565 features every
-# column is about 3 MB of exported GeoJSON, and CEIL_H is empty on 49%
-# of rows while PILOTI is empty on 93%. They stay in the GeoPackage for
-# analysis and out of the web layer.
 OPTIONAL = ("MAX_FLOOR", "NO_APPART")
-
-# 80 of 192,645 footprints carry a roof height of zero or below, the
-# minimum being -3.0 m. Those are survey errors, not basements, and a
-# height class cannot say anything about them.
 MIN_HEIGHT = 0.0
 
 
@@ -43,8 +18,6 @@ def prepare_buildings_height(boundary, raw=None, processed=None, verbose=True):
     raw = raw or config.RAW
     processed = processed or config.PROCESSED
 
-    # bbox first, so GDAL uses the spatial index instead of scanning 1.99
-    # million features
     gdf = gpd.read_file(
         raw / "buildingsheight.gpkg",
         bbox=tuple(boundary.total_bounds),

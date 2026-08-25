@@ -37,17 +37,7 @@ SPECIAL_FUNCTIONS = {
 
 
 def prepare_all(only=None, raw=None, processed=None, verbose=True):
-    """
-    Build every web-ready layer from source.
-
-    Args:
-        only: subset of ALL_NAMES. None does everything.
-        raw / processed: override the default directories.
-        verbose: print progress per layer.
-
-    Returns:
-        {layer name: seconds taken}
-    """
+    """Build every web-ready layer from source."""
 
     if only is not None:
         unknown = set(only) - set(ALL_NAMES)

@@ -1,11 +1,4 @@
-"""Loading and recolouring the SVG icons.
-
-Three recolouring strategies are needed because the icon files come from
-different sources and encode colour differently. In the original notebook
-two of these shared the name `svg_to_data_uri`, so the later definition
-silently shadowed the earlier one and the taxi icon only rendered
-correctly because of cell execution order.
-"""
+"""Loading and recolouring the SVG icons."""
 
 import base64
 import re
@@ -47,16 +40,10 @@ def recolor_params(svg_path, color):
 
 
 def recolor_all(svg_path, color):
-    """
-    Force every visible fill and stroke to one colour, preserving
-    fill="none", transparent and url(...) references.
-
-    Used by the culture icons, which come from mixed sources.
-    """
+    """Force every visible fill and stroke to one colour, preserving fill="none", transparent and url(...) references."""
 
     svg_text = _read(svg_path)
 
-    # Support icons that rely on currentColor
     svg_text = re.sub(
         r"<svg\b", f'<svg color="{color}"', svg_text, count=1, flags=re.IGNORECASE
     )
@@ -64,14 +51,12 @@ def recolor_all(svg_path, color):
     svg_text = _replace_params(svg_text, color)
 
     for attribute in ("fill", "stroke"):
-        # Attribute form: fill="#123456"
         svg_text = re.sub(
             rf'{attribute}="(?!none|transparent|url\()[^"]*"',
             f'{attribute}="{color}"',
             svg_text,
             flags=re.IGNORECASE,
         )
-        # CSS form: fill:#123456
         svg_text = re.sub(
             rf'{attribute}\s*:\s*(?!none|transparent|url\()[^;"}}]+',
             f"{attribute}:{color}",
@@ -83,11 +68,7 @@ def recolor_all(svg_path, color):
 
 
 def inline(svg_path, color, size, viewbox=None):
-    """
-    Recolour black fills and force a size, returning inline markup
-    rather than a data URI. Used by the bike icons inside cluster
-    markers, where an <img> would add layout noise.
-    """
+    """Recolour black fills and force a size, returning inline markup rather than a data URI."""
 
     svg = _read(svg_path)
 
@@ -100,7 +81,6 @@ def inline(svg_path, color, size, viewbox=None):
     if viewbox is not None:
         svg = re.sub(r'viewBox="[^"]*"', f'viewBox="{viewbox}"', svg, count=1)
 
-    # display:block avoids stray inline whitespace beneath the icon
     svg = re.sub(
         r"<svg\b",
         f'<svg style="width:{size}px; height:{size}px; display:block;"',
