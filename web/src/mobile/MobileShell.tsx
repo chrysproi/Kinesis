@@ -50,27 +50,8 @@ export default function MobileShell({
     });
 
   return (
-    <div className="flex h-full flex-col bg-ground">
-      <header className="flex shrink-0 items-center gap-2 px-4 py-2.5">
-        <span
-          aria-hidden
-          className="grid size-7 shrink-0 place-items-center rounded-md
-                     border border-brand"
-        >
-          <img
-            src={`${import.meta.env.BASE_URL}logo.png`}
-            alt=""
-            width={20}
-            height={17}
-          />
-        </span>
-        <h1 className="text-[0.8125rem] font-semibold tracking-[0.06em]
-                       text-brand [word-spacing:0.1em]">
-          KINESIS CITY HUB
-        </h1>
-      </header>
-
-      <main className="relative min-h-0 flex-1 overflow-hidden">
+    <div className="h-full bg-ground">
+      <main className="relative h-full overflow-hidden">
         {children}
 
         <div className="pointer-events-none absolute right-3 top-3 z-10 flex
@@ -120,6 +101,26 @@ export default function MobileShell({
           onDetent={move}
           title="Layers"
           badge={count}
+          leading={
+            <>
+              <span
+                aria-hidden
+                className="grid size-6 shrink-0 place-items-center rounded
+                           border border-brand"
+              >
+                <img
+                  src={`${import.meta.env.BASE_URL}logo.png`}
+                  alt=""
+                  width={17}
+                  height={14}
+                />
+              </span>
+              <h1 className="text-[0.75rem] font-semibold tracking-[0.05em]
+                             text-brand [word-spacing:0.08em]">
+                KINESIS CITY HUB
+              </h1>
+            </>
+          }
         >
           <LayerList
             onFlyToZoom={onFlyToZoom}

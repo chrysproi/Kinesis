@@ -8,6 +8,8 @@ interface BottomSheetProps {
   onDetent: (detent: Detent) => void;
   title: string;
   badge?: number;
+  /** Sits at the left of the grab bar. */
+  leading?: ReactNode;
   children: ReactNode;
 }
 
@@ -16,6 +18,7 @@ export default function BottomSheet({
   onDetent,
   title,
   badge,
+  leading,
   children,
 }: BottomSheetProps) {
   const [drag, setDrag] = useState<{ from: number; delta: number } | null>(null);
@@ -92,8 +95,9 @@ export default function BottomSheet({
           className="mx-auto mb-2.5 block h-1 w-9 rounded-full bg-neutral-300"
         />
         <span className="flex items-center gap-2">
-          <span className="flex-1 text-left text-[0.9375rem] font-semibold
-                           text-neutral-900">
+          {leading}
+          <span className="flex-1" />
+          <span className="text-[0.9375rem] font-semibold text-neutral-900">
             {title}
           </span>
           {badge !== undefined && badge > 0 && (
