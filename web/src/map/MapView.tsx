@@ -21,11 +21,18 @@ import {
 } from "./interactions/featureClick";
 
 interface MapViewProps {
-  onReady?: (flyToZoom: (zoom: number) => void) => void;
+  onReady?: (controls: {
+    flyToZoom: (zoom: number) => void;
+    zoomBy: (delta: number) => void;
+    /** Fraction of the viewport covered from the bottom, 0 to 1. */
+    setBottomPadding: (fraction: number) => void;
+  }) => void;
+  /** MapLibre's own controls. Off on phones, which supply their own. */
+  chrome?: boolean;
 }
 
 /** The map's lifecycle: create it, fill it, keep it in step with the store. */
-export default function MapView({ onReady }: MapViewProps) {
+export default function MapView({ onReady, chrome = true }: MapViewProps) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<MapLibreMap | null>(null);
   const [view, setView] = useState<View | null>(null);
@@ -56,10 +63,12 @@ export default function MapView({ onReady }: MapViewProps) {
       attributionControl: { compact: true },
     });
 
-    instance.addControl(
-      new NavigationControl({ visualizePitch: true }),
-      "bottom-right",
-    );
+    if (chrome) {
+      instance.addControl(
+        new NavigationControl({ visualizePitch: true }),
+        "bottom-right",
+      );
+    }
     instance.addControl(new ScaleControl({ maxWidth: 120 }), "bottom-left");
 
     const syncView = () => {
@@ -75,7 +84,24 @@ export default function MapView({ onReady }: MapViewProps) {
       attachInteraction(instance, clickableLayers());
       setReady(true);
       syncView();
-      onReady?.((zoom) => instance.easeTo({ zoom, duration: 600 }));
+
+      onReady?.({
+        flyToZoom: (zoom) => instance.easeTo({ zoom, duration: 600 }),
+        zoomBy: (delta) => instance.easeTo({ zoom: instance.getZoom() + delta }),
+        // The sheet covers the bottom of the canvas, so without this the
+        // map centres behind it: a flyTo lands under the sheet, and the
+        // place you are looking at drifts upward as it opens.
+        setBottomPadding: (fraction) =>
+          instance.easeTo({
+            padding: {
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: instance.getContainer().clientHeight * fraction,
+            },
+            duration: 300,
+          }),
+      });
     });
 
     instance.on("moveend", syncView);

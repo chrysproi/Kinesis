@@ -12,7 +12,15 @@ import { themeOfBlock, themesInOrder } from "../layers/grouping";
 import { useMapStore } from "../layers/store";
 import LegendBlock from "./LegendBlock";
 
-export default function Legend() {
+interface LegendProps {
+  /**
+   * Where the stack sits. The phone layout moves it clear of the control
+   * column rather than under it; everything else is unchanged.
+   */
+  position?: string;
+}
+
+export default function Legend({ position = "right-3 top-3" }: LegendProps) {
   const visible = useMapStore((state) => state.visible);
   const zoom = useMapStore((state) => state.zoom);
 
@@ -35,10 +43,10 @@ export default function Legend() {
     <div
       aria-label="Legend"
       role="complementary"
-      className="pointer-events-none absolute right-3 top-3 flex
+      className={`pointer-events-none absolute ${position} flex
                  max-h-[calc(100%-1.5rem)] w-[10.5rem] flex-col gap-2
                  overflow-y-auto overscroll-contain [scrollbar-width:none]
-                 [&::-webkit-scrollbar]:hidden"
+                 [&::-webkit-scrollbar]:hidden`}
     >
       {themesInOrder().map((theme) => {
         const inTheme = blocks.filter(([, block]) => themeOfBlock(block) === theme);
