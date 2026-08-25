@@ -28,5 +28,8 @@ web/dist/
 # macOS
 .DS_Store
 
-# Local editor and agent settings
+# Local editor and agent settings. The VS Code entries point at a conda
+# environment on one machine, so they are local setup rather than
+# anything the project needs to build.
+.vscode/
 .claude/settings.local.json
