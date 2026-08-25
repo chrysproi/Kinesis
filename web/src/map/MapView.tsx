@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Map as MapLibreMap, NavigationControl, ScaleControl } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+// Must run before a Map is constructed
+import "./worker";
 
 import { MAP_CONFIG, MAP_LAYERS } from "../generated/layerRegistry";
 import { readHash, useHashState, type View } from "../url/useHashState";

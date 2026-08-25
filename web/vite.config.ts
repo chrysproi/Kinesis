@@ -9,4 +9,8 @@ export default defineConfig({
   // MapLibre loads its worker as a separate module. Pre-bundling rewrites
   // the path and the worker 404s, leaving a blank canvas with no error.
   optimizeDeps: { exclude: ["maplibre-gl"] },
+
+  // MapLibre starts the worker with { type: "module" } unless the URL
+  // ends in .cjs, so the bundle it points at has to be one.
+  worker: { format: "es" },
 });
