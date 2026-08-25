@@ -1,0 +1,17 @@
+{
+"type": "FeatureCollection",
+"name": "bike_lanes_proposed",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"xy_coordinate_resolution": 1e-06,
+"features": [
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 22.93138, 40.639396 ], [ 22.931388, 40.639577 ], [ 22.931586, 40.639713 ], [ 22.934168, 40.64018 ], [ 22.93456, 40.640301 ], [ 22.935008, 40.64066 ], [ 22.936257, 40.640018 ], [ 22.936201, 40.639972 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 22.936257, 40.640018 ], [ 22.949817, 40.632944 ], [ 22.953304, 40.631184 ], [ 22.953379, 40.631255 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 22.951715, 40.631957 ], [ 22.951736, 40.631975 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 22.953304, 40.631185 ], [ 22.953486, 40.631078 ], [ 22.953492, 40.630813 ], [ 22.953645, 40.630704 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 22.943929, 40.636028 ], [ 22.943501, 40.635546 ], [ 22.94347, 40.635491 ], [ 22.943541, 40.63535 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 22.943731, 40.635253 ], [ 22.943892, 40.635254 ], [ 22.94405, 40.635336 ], [ 22.944428, 40.635767 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 22.935904, 40.639932 ], [ 22.93585, 40.640149 ], [ 22.935882, 40.640211 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 22.935006, 40.640659 ], [ 22.928405, 40.643934 ], [ 22.928026, 40.643533 ] ] } },
+{ "type": "Feature", "properties": { }, "geometry": { "type": "LineString", "coordinates": [ [ 22.934632, 40.640846 ], [ 22.934507, 40.640678 ], [ 22.934468, 40.640417 ], [ 22.934521, 40.640289 ] ] } }
+]
+}
